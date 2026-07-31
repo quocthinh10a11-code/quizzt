@@ -47,7 +47,7 @@ export default function RegisterPage() {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
-          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
         />
 
         <input
@@ -56,7 +56,7 @@ export default function RegisterPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
         />
 
         <input
@@ -66,7 +66,7 @@ export default function RegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
         />
 
         {error && <p className="text-red-600 text-sm">{error}</p>}
