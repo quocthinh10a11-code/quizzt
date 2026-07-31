@@ -1,7 +1,4 @@
 import mammoth from "mammoth";
-import * as pdfjsLib from "pdfjs-dist";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 export async function extractTextFromFile(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
@@ -12,6 +9,12 @@ export async function extractTextFromFile(file: File): Promise<string> {
   }
 
   if (file.name.toLowerCase().endsWith(".pdf")) {
+    // Dynamic import: chỉ load pdfjs-dist khi hàm này thực sự chạy trong trình duyệt.
+    // Import tĩnh ở đầu file sẽ khiến Next.js load thư viện này lúc build/prerender
+    // ở server (Node.js), nơi không có DOMMatrix -> gây lỗi build.
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = "";
 
