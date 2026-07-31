@@ -13,8 +13,6 @@ export default function Navbar() {
       </Link>
 
       <div className="flex gap-6 items-center">
-        <Link href="/">Trang chủ</Link>
-        <Link href="/quizzes">Bộ đề</Link>
         <Link href="/setting">Cài đặt</Link>
 
         {user ? (
