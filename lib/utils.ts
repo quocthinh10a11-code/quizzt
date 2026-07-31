@@ -1,3 +1,3 @@
-export function cn(...classes: (string | false | null | undefined)[]): string {
-  return classes.filter(Boolean).join(" ");
+export function cn(...classes: unknown[]): string {
+  return classes.filter((c): c is string => typeof c === "string" && c.length > 0).join(" ");
 }
