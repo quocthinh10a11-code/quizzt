@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Card from "@/components/ui/Card";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -37,48 +41,73 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Đăng ký</h1>
+    <div className="relative min-h-[85vh] flex items-center justify-center px-4 overflow-hidden">
+      <div
+        aria-hidden
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/10 blur-3xl pointer-events-none"
+      />
 
-      <form onSubmit={handleRegister} className="flex flex-col gap-4">
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-        />
+      <Card className="relative w-full max-w-md p-8 animate-fade-up">
+        <div className="text-center mb-8">
+          <Link href="/" className="text-2xl font-bold text-primary">
+            Quizzt
+          </Link>
+          <h1 className="mt-4 text-xl font-semibold text-black dark:text-white">
+            Tạo tài khoản mới
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Bắt đầu tự tạo bộ đề ôn tập của riêng bạn
+          </p>
+        </div>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-        />
+        <form onSubmit={handleRegister} className="flex flex-col gap-4">
+          <Input
+            type="text"
+            label="Tên người dùng"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
 
-        <input
-          type="password"
-          placeholder="Mật khẩu"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-        />
+          <Input
+            type="email"
+            label="Email"
+            placeholder="ban@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+          <Input
+            type="password"
+            label="Mật khẩu"
+            placeholder="Tối thiểu 6 ký tự"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            helperText="Ít nhất 6 ký tự"
+          />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Đang xử lý..." : "Đăng ký"}
-        </button>
-      </form>
+          {error && (
+            <p className="text-sm text-danger bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
+          <Button type="submit" loading={loading} className="w-full mt-2">
+            Đăng ký
+          </Button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          Đã có tài khoản?{" "}
+          <Link href="/login" className="text-primary font-medium hover:underline">
+            Đăng nhập
+          </Link>
+        </p>
+      </Card>
     </div>
   );
 }

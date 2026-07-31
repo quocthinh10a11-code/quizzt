@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Card from "@/components/ui/Card";
 
 export default function LoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,45 +38,79 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Đăng nhập</h1>
+    <div className="relative min-h-[85vh] flex items-center justify-center px-4 overflow-hidden">
+      {/* Background tinh tế: 1 khối gradient mờ phía sau card, không dùng ảnh */}
+      <div
+        aria-hidden
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/10 blur-3xl pointer-events-none"
+      />
 
-      <form onSubmit={handleLogin} className="flex flex-col gap-4">
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-        />
+      <Card className="relative w-full max-w-md p-8 animate-fade-up">
+        <div className="text-center mb-8">
+          <Link href="/" className="text-2xl font-bold text-primary">
+            Quizzt
+          </Link>
+          <h1 className="mt-4 text-xl font-semibold text-black dark:text-white">
+            Chào mừng trở lại
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Đăng nhập để tiếp tục ôn tập
+          </p>
+        </div>
 
-        <input
-          type="password"
-          placeholder="Mật khẩu"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="border rounded px-4 py-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-        />
+        <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          <Input
+            type="email"
+            label="Email"
+            placeholder="ban@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+          <Input
+            type="password"
+            label="Mật khẩu"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Đang xử lý..." : "Đăng nhập"}
-        </button>
-      </form>
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 text-gray-600 dark:text-gray-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="rounded border-gray-300 dark:border-gray-700 text-primary focus:ring-primary/20"
+              />
+              Ghi nhớ đăng nhập
+            </label>
 
-      <p className="mt-4 text-sm text-gray-500">
-        Chưa có tài khoản?{" "}
-        <a href="/register" className="text-blue-600 hover:underline">
-          Đăng ký ngay
-        </a>
-      </p>
+            <Link href="/forgot-password" className="text-primary hover:underline">
+              Quên mật khẩu?
+            </Link>
+          </div>
+
+          {error && (
+            <p className="text-sm text-danger bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
+          <Button type="submit" loading={loading} className="w-full mt-2">
+            Đăng nhập
+          </Button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          Chưa có tài khoản?{" "}
+          <Link href="/register" className="text-primary font-medium hover:underline">
+            Đăng ký ngay
+          </Link>
+        </p>
+      </Card>
     </div>
   );
 }
