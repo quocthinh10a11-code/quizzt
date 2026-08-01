@@ -35,7 +35,7 @@ export default function EditQuizPage() {
   const quizId = Number(params.id);
   const { user, loading: authLoading } = useAuth();
   const [description, setDescription] = useState("");
-
+  
   const [title, setTitle] = useState("");
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
@@ -66,18 +66,17 @@ export default function EditQuizPage() {
   setOwnerId(quiz.user_id);
 }
       if (questionData) {
-        setQuestions(
-  questionData.map((q) => ({
+  const loaded = questionData.map((q) => ({
     id: q.id,
     tempId: makeTempId(),
     content: q.content,
     options: q.options,
     correct_index: q.correct_index,
     difficulty: q.difficulty,
-  }))
-);
-      }
-
+  }));
+  setQuestions(loaded);
+  setOpenedTempIds(new Set(loaded.map((q) => q.tempId))); // <-- thêm dòng này
+}
       setLoading(false);
     }
 
@@ -107,7 +106,9 @@ export default function EditQuizPage() {
       prev.map((q) => (q.tempId === tempId ? { ...q, ...patch } : q))
     );
   }
-
+  function handleOpenDifficulty(tempId: string) {
+  setOpenedTempIds((prev) => new Set(prev).add(tempId));
+}
   function updateOption(tempId: string, optIndex: number, value: string) {
     setQuestions((prev) =>
       prev.map((q) => {
@@ -239,58 +240,70 @@ router.push("/");
       <div className="flex flex-col gap-4">
         {questions.map((q, index) => (
           <Card key={q.tempId} className="p-5">
-            <div className="flex justify-between items-center mb-3 gap-3">
-  <span className="font-semibold text-gray-900 dark:text-white">Câu {index + 1}</span>
-  <div className="flex items-center gap-3">
-    <div className="w-32">
-      <Select
-        options={DIFFICULTY_OPTIONS}
-        value={q.difficulty}
-        onChange={(e) =>
-          updateQuestion(q.tempId, { difficulty: e.target.value as "easy" | "medium" | "hard" })
-        }
-      />
+  <div className="flex justify-between items-center mb-3 gap-3">
+    <span className="font-semibold text-gray-900 dark:text-white">Câu {index + 1}</span>
+    <div className="flex items-center gap-3">
+      <div className="w-32">
+        <Select
+          options={DIFFICULTY_OPTIONS}
+          value={q.difficulty}
+          onFocus={() => handleOpenDifficulty(q.tempId)}
+          onChange={(e) =>
+            updateQuestion(q.tempId, { difficulty: e.target.value as "easy" | "medium" | "hard" })
+          }
+        />
+      </div>
+      <button
+        onClick={() => removeQuestion(q.tempId, q.id)}
+        className="inline-flex items-center gap-1 text-danger text-sm hover:underline"
+      >
+        <Trash2 size={14} />
+        Xoá câu này
+      </button>
     </div>
-    <button onClick={() => removeQuestion(q.tempId, q.id)} className="inline-flex items-center gap-1 text-danger text-sm hover:underline">
-      <Trash2 size={14} />
-      Xoá câu này
-    </button>
   </div>
-</div>
 
-            <Textarea
-              value={q.content}
-              onChange={(e) => updateQuestion(q.tempId, { content: e.target.value })}
-              placeholder="Nội dung câu hỏi"
-              rows={2}
-              className="mb-3"
+  {openedTempIds.has(q.tempId) ? (
+    <div className="animate-fade-up">
+      <Textarea
+        value={q.content}
+        onChange={(e) => updateQuestion(q.tempId, { content: e.target.value })}
+        placeholder="Nội dung câu hỏi"
+        rows={2}
+        className="mb-3"
+      />
+
+      <div className="flex flex-col gap-2">
+        {q.options.map((opt, optIndex) => (
+          <div key={optIndex} className="flex items-center gap-2">
+            <input
+              type="radio"
+              name={`correct-${q.tempId}`}
+              checked={q.correct_index === optIndex}
+              onChange={() => updateQuestion(q.tempId, { correct_index: optIndex })}
+              className="accent-primary w-4 h-4 shrink-0"
             />
-
-            <div className="flex flex-col gap-2">
-              {q.options.map((opt, optIndex) => (
-                <div key={optIndex} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name={`correct-${q.tempId}`}
-                    checked={q.correct_index === optIndex}
-                    onChange={() => updateQuestion(q.tempId, { correct_index: optIndex })}
-                    className="accent-primary w-4 h-4 shrink-0"
-                  />
-                  <span className="w-5 text-sm text-gray-500 dark:text-gray-400">
-                    {String.fromCharCode(65 + optIndex)}.
-                  </span>
-                  <Input
-                    value={opt}
-                    onChange={(e) => updateOption(q.tempId, optIndex, e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Chọn nút tròn ở đầu dòng để đánh dấu đáp án đúng.
-            </p>
-          </Card>
+            <span className="w-5 text-sm text-gray-500 dark:text-gray-400">
+              {String.fromCharCode(65 + optIndex)}.
+            </span>
+            <Input
+              value={opt}
+              onChange={(e) => updateOption(q.tempId, optIndex, e.target.value)}
+              className="flex-1"
+            />
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        Chọn nút tròn ở đầu dòng để đánh dấu đáp án đúng.
+      </p>
+    </div>
+  ) : (
+    <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+      Chọn độ khó bên trên để thiết lập nội dung và đáp án cho câu này.
+    </p>
+  )}
+</Card>
         ))}
       </div>
 

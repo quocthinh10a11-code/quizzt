@@ -33,6 +33,7 @@ export default function CreateQuizPage() {
   { value: "medium", label: "Trung bình" },
   { value: "hard", label: "Khó" },
 ];
+  const [openedIndexes, setOpenedIndexes] = useState<Set<number>>(new Set());
   async function handleCopyPrompt() {
     await navigator.clipboard.writeText(STANDARD_FORMAT_PROMPT);
     setCopied(true);
@@ -58,16 +59,17 @@ export default function CreateQuizPage() {
   }
 
   function handleParse() {
-    const { title: extractedTitle, body } = extractTitleAndBody(rawText);
+  const { title: extractedTitle, body } = extractTitleAndBody(rawText);
 
-    if (!title.trim() && extractedTitle) {
-      setTitle(extractedTitle);
-    }
-
-    const { questions, errors } = parseText(body);
-    setQuestions(questions);
-    setParseErrors(errors);
+  if (!title.trim() && extractedTitle) {
+    setTitle(extractedTitle);
   }
+
+  const { questions, errors } = parseText(body);
+  setQuestions(questions);
+  setParseErrors(errors);
+  setOpenedIndexes(new Set()); // <-- thêm dòng này, reset trạng thái mở khi tách lại
+}
 
   function handleSelectCorrect(questionIndex: number, optionIndex: number) {
     const updated = [...questions];
@@ -78,6 +80,10 @@ export default function CreateQuizPage() {
   const updated = [...questions];
   updated[questionIndex] = { ...updated[questionIndex], difficulty };
   setQuestions(updated);
+  setOpenedIndexes((prev) => new Set(prev).add(questionIndex)); // <-- thêm dòng này
+}
+  function handleOpenDifficulty(questionIndex: number) {
+  setOpenedIndexes((prev) => new Set(prev).add(questionIndex));
 }
 
   const allAnswered = questions.length > 0 && questions.every((q) => q.correctIndex !== null);
@@ -224,26 +230,52 @@ export default function CreateQuizPage() {
             </h2>
 
             <div className="flex flex-col gap-4">
-              {questions.map((q, qIndex) => (
-                <Card key={qIndex} className="p-5">
-  <div className="flex justify-between items-start gap-3 mb-3">
-    <p className="font-medium text-gray-900 dark:text-white">
-      Câu {qIndex + 1}: {q.content}
-    </p>
-    <div className="w-32 shrink-0">
-      <Select
-        options={DIFFICULTY_OPTIONS}
-        value={q.difficulty}
-        onChange={(e) => handleSelectDifficulty(qIndex, e.target.value as "easy" | "medium" | "hard")}
-      />
-    </div>
-  </div>
+              {questions.map((q, qIndex) => {
+  const isOpen = openedIndexes.has(qIndex);
+  return (
+    <Card key={qIndex} className="p-5">
+      <div className="flex justify-between items-start gap-3 mb-3">
+        <p className="font-medium text-gray-900 dark:text-white">
+          Câu {qIndex + 1}: {q.content}
+        </p>
+        <div className="w-32 shrink-0">
+          <Select
+            options={DIFFICULTY_OPTIONS}
+            value={q.difficulty}
+            onFocus={() => handleOpenDifficulty(qIndex)}
+            onChange={(e) => handleSelectDifficulty(qIndex, e.target.value as "easy" | "medium" | "hard")}
+          />
+        </div>
+      </div>
 
-  <div className="flex flex-col gap-2">
-    {/* ... phần radio options giữ nguyên như cũ ... */}
-  </div>
-</Card>
-              ))}
+      {isOpen ? (
+        <div className="flex flex-col gap-2 animate-fade-up">
+          {q.options.map((option, oIndex) => (
+            <label
+              key={oIndex}
+              className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300"
+            >
+              <input
+                type="radio"
+                name={`correct-${qIndex}`}
+                checked={q.correctIndex === oIndex}
+                onChange={() => handleSelectCorrect(qIndex, oIndex)}
+                className="accent-primary w-4 h-4"
+              />
+              <span>
+                {String.fromCharCode(65 + oIndex)}. {option}
+              </span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+          Chọn độ khó bên trên để thiết lập đáp án đúng cho câu này.
+        </p>
+      )}
+    </Card>
+  );
+})}
             </div>
 
             {saveError && <p className="text-danger text-sm mt-4">{saveError}</p>}
