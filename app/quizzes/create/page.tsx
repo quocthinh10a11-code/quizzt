@@ -27,6 +27,7 @@ export default function CreateQuizPage() {
   const [saveError, setSaveError] = useState("");
   const [fileError, setFileError] = useState("");
   const [fileLoading, setFileLoading] = useState(false);
+  const [description, setDescription] = useState("");
 
   async function handleCopyPrompt() {
     await navigator.clipboard.writeText(STANDARD_FORMAT_PROMPT);
@@ -91,10 +92,10 @@ export default function CreateQuizPage() {
     setSaving(true);
 
     const { data: quiz, error: quizError } = await supabase
-      .from("quizzes")
-      .insert({ title, user_id: user.id, is_public: isPublic })
-      .select()
-      .single();
+  .from("quizzes")
+  .insert({ title, description: description.trim() || null, user_id: user.id, is_public: isPublic })
+  .select()
+  .single();
 
     if (quizError || !quiz) {
       setSaveError(quizError?.message ?? "Không thể tạo bộ đề.");
@@ -133,6 +134,13 @@ export default function CreateQuizPage() {
             onChange={(e) => setTitle(e.target.value)}
             className="mb-4"
           />
+        <Textarea
+  placeholder="Mô tả ngắn về bộ đề (tuỳ chọn)"
+  value={description}
+  onChange={(e) => setDescription(e.target.value)}
+  rows={2}
+  className="mb-4"
+/>
 
           <label className="flex items-center gap-2 mb-6 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
             <input

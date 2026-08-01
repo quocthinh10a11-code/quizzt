@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Play, RotateCcw, Plus, Pencil, Globe, Lock } from "lucide-react";
+import { Play, RotateCcw, Plus, Pencil, Globe, Lock, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import Card from "@/components/ui/Card";
@@ -12,12 +12,24 @@ import Button from "@/components/ui/Button";
 type QuizCardProps = {
   id: number;
   title: string;
+  description: string | null;
+  updatedAt: string;
+  ownerUsername: string | null;
   questions: number;
   ownerId: string | null;
   isPublic: boolean;
 };
 
-export default function QuizCard({ id, title, questions, ownerId, isPublic }: QuizCardProps) {
+export default function QuizCard({
+  id,
+  title,
+  description,
+  updatedAt,
+  ownerUsername,
+  questions,
+  ownerId,
+  isPublic,
+}: QuizCardProps) {
   const { user } = useAuth();
   const isOwner = !!user && user.id === ownerId;
 
@@ -28,7 +40,7 @@ export default function QuizCard({ id, title, questions, ownerId, isPublic }: Qu
     if (toggling) return;
 
     const next = !publicState;
-    setPublicState(next); // optimistic UI
+    setPublicState(next);
     setToggling(true);
 
     const { error } = await supabase
@@ -37,12 +49,18 @@ export default function QuizCard({ id, title, questions, ownerId, isPublic }: Qu
       .eq("id", id);
 
     if (error) {
-      setPublicState(!next); // rollback nếu lỗi
+      setPublicState(!next);
       alert("Không thể đổi trạng thái: " + error.message);
     }
 
     setToggling(false);
   }
+
+  const formattedDate = new Date(updatedAt).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 
   return (
     <Card hoverable className="p-6 flex flex-col animate-fade-up">
@@ -66,9 +84,26 @@ export default function QuizCard({ id, title, questions, ownerId, isPublic }: Qu
         )}
       </div>
 
-      <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
-        {questions} câu hỏi
-      </p>
+      {description && (
+        <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+          {description}
+        </p>
+      )}
+
+      <div className="mt-2 flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+        <span>{questions} câu hỏi</span>
+        <span>·</span>
+        <span>Cập nhật {formattedDate}</span>
+        {!isOwner && ownerUsername && (
+          <>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1">
+              <User size={11} />
+              {ownerUsername}
+            </span>
+          </>
+        )}
+      </div>
 
       <div className="mt-5 flex gap-2 flex-wrap">
         <Link href={`/practice/${id}`}>

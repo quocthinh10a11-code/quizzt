@@ -13,37 +13,63 @@ import { useAuth } from "@/context/AuthContext";
 type QuizRow = {
   id: number;
   title: string;
+  description: string | null;
+  updated_at: string;
   user_id: string | null;
   is_public: boolean;
   questions: { count: number }[];
 };
 
+
 export default function QuizzesPage() {
-  const { user, loading: authLoading } = useAuth();
   const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
+  const [usernames, setUsernames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (authLoading) return;
+  if (authLoading) return;
 
-    async function loadQuizzes() {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("quizzes")
-        .select("id, title, user_id, is_public, questions:questions(count)");
+  async function loadQuizzes() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("quizzes")
+      .select("id, title, description, updated_at, user_id, is_public, questions:questions(count)")
+      .order("updated_at", { ascending: false });
 
-      if (error) {
-        setError(error.message);
-      } else {
-        setQuizzes(data ?? []);
-      }
+    if (error) {
+      setError(error.message);
       setLoading(false);
+      return;
     }
 
-    loadQuizzes();
-  }, [authLoading, user?.id]);
+    setQuizzes(data ?? []);
+
+    // Lấy username của các chủ sở hữu, gọi riêng để tránh lỗi PostgREST
+    // không tìm thấy relationship giữa quizzes và profiles
+    const ownerIds = Array.from(
+      new Set((data ?? []).map((q) => q.user_id).filter((id): id is string => !!id))
+    );
+
+    if (ownerIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .in("id", ownerIds);
+
+      const map: Record<string, string> = {};
+      (profilesData ?? []).forEach((p) => {
+        map[p.id] = p.username;
+      });
+      setUsernames(map);
+    }
+
+    setLoading(false);
+  }
+
+  loadQuizzes();
+}, [authLoading, user?.id]);
 
   const filteredQuizzes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -101,15 +127,18 @@ export default function QuizzesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {filteredQuizzes.map((quiz) => (
-              <QuizCard
-                key={quiz.id}
-                id={quiz.id}
-                title={quiz.title}
-                questions={quiz.questions[0]?.count ?? 0}
-                ownerId={quiz.user_id}
-                isPublic={quiz.is_public}
-              />
-            ))}
+  <QuizCard
+    key={quiz.id}
+    id={quiz.id}
+    title={quiz.title}
+    description={quiz.description}
+    updatedAt={quiz.updated_at}
+    ownerUsername={quiz.user_id ? usernames[quiz.user_id] ?? null : null}
+    questions={quiz.questions[0]?.count ?? 0}
+    ownerId={quiz.user_id}
+    isPublic={quiz.is_public}
+  />
+))}
           </div>
         )}
 

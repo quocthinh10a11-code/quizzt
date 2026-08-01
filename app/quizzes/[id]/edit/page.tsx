@@ -28,6 +28,7 @@ export default function EditQuizPage() {
   const router = useRouter();
   const quizId = Number(params.id);
   const { user, loading: authLoading } = useAuth();
+  const [description, setDescription] = useState("");
 
   const [title, setTitle] = useState("");
   const [ownerId, setOwnerId] = useState<string | null>(null);
@@ -42,10 +43,10 @@ export default function EditQuizPage() {
       setLoading(true);
 
       const { data: quiz } = await supabase
-        .from("quizzes")
-        .select("title, user_id")
-        .eq("id", quizId)
-        .single();
+  .from("quizzes")
+  .select("title, description, user_id")
+  .eq("id", quizId)
+  .single();
 
       const { data: questionData } = await supabase
         .from("questions")
@@ -53,9 +54,10 @@ export default function EditQuizPage() {
         .eq("quiz_id", quizId);
 
       if (quiz) {
-        setTitle(quiz.title);
-        setOwnerId(quiz.user_id);
-      }
+  setTitle(quiz.title);
+  setDescription(quiz.description ?? "");
+  setOwnerId(quiz.user_id);
+}
       if (questionData) {
         setQuestions(
           questionData.map((q) => ({
@@ -142,9 +144,9 @@ export default function EditQuizPage() {
     }
 
     const { error: titleError } = await supabase
-      .from("quizzes")
-      .update({ title })
-      .eq("id", quizId);
+  .from("quizzes")
+  .update({ title, description: description.trim() || null })
+  .eq("id", quizId);
 
     if (titleError) {
       setMessage("Lỗi khi lưu tiêu đề: " + titleError.message);
@@ -217,6 +219,13 @@ export default function EditQuizPage() {
         onChange={(e) => setTitle(e.target.value)}
         className="mb-6"
       />
+      <Textarea
+  label="Mô tả (tuỳ chọn)"
+  value={description}
+  onChange={(e) => setDescription(e.target.value)}
+  rows={2}
+  className="mb-6"
+/>
 
       <div className="flex flex-col gap-4">
         {questions.map((q, index) => (
