@@ -10,7 +10,13 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
 import Skeleton from "@/components/ui/Skeleton";
+import Select from "@/components/ui/Select";
 
+const DIFFICULTY_OPTIONS = [
+  { value: "easy", label: "Dễ" },
+  { value: "medium", label: "Trung bình" },
+  { value: "hard", label: "Khó" },
+];
 type EditableQuestion = {
   id: number | null;
   tempId: string;
