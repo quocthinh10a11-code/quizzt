@@ -40,7 +40,7 @@ export default function Navbar() {
               className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
             >
               <Layers size={15} />
-              Bộ đề đã tạo
+              Bộ đề của bạn
             </Link>
           )}
         </div>
