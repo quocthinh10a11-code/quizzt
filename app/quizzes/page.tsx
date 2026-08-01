@@ -1,11 +1,14 @@
 "use client";
-import RequireAuth from "@/components/RequireAuth";
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Search, Plus, FileQuestion } from "lucide-react";
+import RequireAuth from "@/components/RequireAuth";
 import QuizCard from "@/components/QuizCard";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import Skeleton from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext"; // đổi đúng đường dẫn thật
+import { useAuth } from "@/context/AuthContext";
 
 type QuizRow = {
   id: number;
@@ -20,9 +23,10 @@ export default function QuizzesPage() {
   const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (authLoading) return; // đợi biết user là ai trước khi query, để RLS trả đúng dữ liệu
+    if (authLoading) return;
 
     async function loadQuizzes() {
       setLoading(true);
@@ -41,42 +45,88 @@ export default function QuizzesPage() {
     loadQuizzes();
   }, [authLoading, user?.id]);
 
-  if (authLoading || loading) {
-    return <div className="p-8 text-center">Đang tải...</div>;
-  }
-
-  if (error) {
-    return <div className="p-8 text-red-600">Lỗi tải dữ liệu: {error}</div>;
-  }
+  const filteredQuizzes = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return quizzes;
+    return quizzes.filter((quiz) => quiz.title.toLowerCase().includes(q));
+  }, [quizzes, search]);
 
   return (
     <RequireAuth>
-      <div className="p-8">
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Danh sách bộ đề</h1>
-          <Link
-            href="/quizzes/create"
-            className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700"
-          >
-            + Tạo bộ đề
+      <div className="p-8 max-w-6xl mx-auto">
+        <div className="flex justify-between items-center gap-4 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Danh sách bộ đề
+          </h1>
+          <Link href="/quizzes/create" className="hidden sm:block">
+            <Button variant="primary" leftIcon={<Plus size={16} />}>
+              Tạo bộ đề
+            </Button>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {quizzes.map((quiz) => (
-            <QuizCard
-              key={quiz.id}
-              id={quiz.id}
-              title={quiz.title}
-              questions={quiz.questions[0]?.count ?? 0}
-              ownerId={quiz.user_id}
-              isPublic={quiz.is_public}
-            />
-          ))}
+        <div className="mb-6 max-w-sm">
+          <Input
+            placeholder="Tìm bộ đề theo tên..."
+            icon={<Search size={16} />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
+
+        {error && (
+          <p className="text-danger text-sm mb-4">Lỗi tải dữ liệu: {error}</p>
+        )}
+
+        {authLoading || loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-44 rounded-xl" />
+            ))}
+          </div>
+        ) : filteredQuizzes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center py-20 text-gray-500 dark:text-gray-400">
+            <FileQuestion size={40} className="mb-3 opacity-60" />
+            <p className="font-medium">
+              {search ? "Không tìm thấy bộ đề nào phù hợp" : "Bạn chưa có bộ đề nào"}
+            </p>
+            {!search && (
+              <Link href="/quizzes/create" className="mt-4">
+                <Button variant="primary" leftIcon={<Plus size={16} />}>
+                  Tạo bộ đề đầu tiên
+                </Button>
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {filteredQuizzes.map((quiz) => (
+              <QuizCard
+                key={quiz.id}
+                id={quiz.id}
+                title={quiz.title}
+                questions={quiz.questions[0]?.count ?? 0}
+                ownerId={quiz.user_id}
+                isPublic={quiz.is_public}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* FAB cho mobile */}
+        <Link
+          href="/quizzes/create"
+          className="sm:hidden fixed bottom-6 right-6 z-20"
+        >
+          <Button
+            variant="primary"
+            size="icon"
+            className="w-14 h-14 rounded-full shadow-lg"
+          >
+            <Plus size={22} />
+          </Button>
+        </Link>
       </div>
-    </div>
     </RequireAuth>
-    );
-  }
+  );
+}
