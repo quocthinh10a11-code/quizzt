@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
-
+import { LogOut } from "lucide-react";
 type Question = {
   id: number;
   content: string;
@@ -31,7 +31,7 @@ export default function PracticePage() {
 
   // ----- Đếm ngược -----
   const [started, setStarted] = useState(false);
-  const [minutesInput, setMinutesInput] = useState(15);
+  const [minutesInput, setMinutesInput] = useState("15");
   const [noLimit, setNoLimit] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null); // giây, null = không giới hạn
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -88,13 +88,25 @@ export default function PracticePage() {
     );
     setSubmitted(true);
   }
-
-  function handleStart() {
-    setStarted(true);
-    if (!noLimit) {
-      setTimeLeft(minutesInput * 60);
+  function handleExit() {
+  const confirmed = window.confirm(
+    "Kết quả của bạn sẽ không được tính. Xác nhận thoát?"
+  );
+  if (confirmed) {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
+    router.push("/");
   }
+}
+  function handleStart() {
+  setStarted(true);
+  if (!noLimit) {
+    const minutes = Math.max(1, parseInt(minutesInput, 10) || 15);
+    setTimeLeft(minutes * 60);
+  }
+}
 
   // Chạy đồng hồ đếm ngược
   useEffect(() => {
@@ -160,13 +172,13 @@ export default function PracticePage() {
 
           <div className={cn(noLimit && "opacity-40 pointer-events-none")}>
             <Input
-              type="number"
-              min={1}
-              label="Thời gian làm bài (phút)"
-              value={minutesInput}
-              onChange={(e) => setMinutesInput(Number(e.target.value) || 1)}
-              disabled={noLimit}
-            />
+  type="number"
+  min={1}
+  label="Thời gian làm bài (phút)"
+  value={minutesInput}
+  onChange={(e) => setMinutesInput(e.target.value.replace(/[^0-9]/g, ""))}
+  disabled={noLimit}
+/>
           </div>
         </Card>
 
@@ -183,19 +195,30 @@ export default function PracticePage() {
   return (
     <div className="p-8 max-w-3xl mx-auto animate-fade-up">
       <div className="flex justify-between items-start gap-4 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{quizTitle}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            Đã trả lời {answeredCount}/{questions.length} câu
-          </p>
-        </div>
-        {!submitted && timeLeft !== null && (
-          <Badge variant={timeLeft <= 30 ? "danger" : "default"} className="text-sm px-3 py-1.5">
-            <Clock size={14} />
-            {formatTime(timeLeft)}
-          </Badge>
-        )}
-      </div>
+  <div>
+    <h1 className="text-xl font-bold text-gray-900 dark:text-white">{quizTitle}</h1>
+    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+      Đã trả lời {answeredCount}/{questions.length} câu
+    </p>
+  </div>
+  <div className="flex items-center gap-2">
+    {!submitted && (
+      <button
+        onClick={handleExit}
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-danger transition-colors px-2 py-1"
+      >
+        <LogOut size={14} />
+        Thoát
+      </button>
+    )}
+    {!submitted && timeLeft !== null && (
+      <Badge variant={timeLeft <= 30 ? "danger" : "default"} className="text-sm px-3 py-1.5">
+        <Clock size={14} />
+        {formatTime(timeLeft)}
+      </Badge>
+    )}
+  </div>
+</div>
 
       {!submitted ? (
         <>

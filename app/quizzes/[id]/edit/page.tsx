@@ -204,9 +204,8 @@ export default function EditQuizPage() {
     }
 
     setDeletedIds([]);
-    setMessage("Đã lưu thành công!");
-    setSaving(false);
-    router.refresh();
+setSaving(false);
+router.push("/");
   }
 
   return (
