@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Badge from "@/components/ui/Badge";
+import { cn } from "@/lib/utils";
 
 type Question = {
   id: number;
@@ -127,136 +133,168 @@ export default function PracticePage() {
   }
 
   if (loading) {
-    return <div className="p-8 text-center">Đang tải câu hỏi...</div>;
+    return <div className="p-8 text-center text-gray-500">Đang tải câu hỏi...</div>;
   }
 
   if (questions.length === 0) {
-    return <div className="p-8 text-center">Bộ đề này chưa có câu hỏi nào.</div>;
+    return <div className="p-8 text-center text-gray-500">Bộ đề này chưa có câu hỏi nào.</div>;
   }
 
   // ----- Màn hình cài đặt thời gian trước khi bắt đầu -----
   if (!started) {
     return (
-      <div className="p-8 max-w-md mx-auto text-center">
-        <h1 className="text-2xl font-bold mb-1">{quizTitle}</h1>
-        <p className="text-gray-500 mb-6">{questions.length} câu hỏi</p>
+      <div className="p-8 max-w-md mx-auto text-center animate-fade-up">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{quizTitle}</h1>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">{questions.length} câu hỏi</p>
 
-        <div className="border rounded-lg p-6 border-gray-300 dark:border-gray-700 text-left">
-          <label className="flex items-center gap-2 mb-4">
+        <Card className="p-6 text-left">
+          <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
             <input
               type="checkbox"
               checked={noLimit}
               onChange={(e) => setNoLimit(e.target.checked)}
+              className="accent-primary w-4 h-4"
             />
             Không giới hạn thời gian
           </label>
 
-          <label className={`block ${noLimit ? "opacity-40 pointer-events-none" : ""}`}>
-            <span className="text-sm text-gray-500">Thời gian làm bài (phút)</span>
-            <input
+          <div className={cn(noLimit && "opacity-40 pointer-events-none")}>
+            <Input
               type="number"
               min={1}
+              label="Thời gian làm bài (phút)"
               value={minutesInput}
               onChange={(e) => setMinutesInput(Number(e.target.value) || 1)}
-              className="w-full mt-1 px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
               disabled={noLimit}
             />
-          </label>
-        </div>
+          </div>
+        </Card>
 
-        <button
-          onClick={handleStart}
-          className="mt-6 px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition w-full"
-        >
+        <Button onClick={handleStart} variant="primary" className="mt-6 w-full" size="lg">
           Bắt đầu làm bài
-        </button>
+        </Button>
       </div>
     );
   }
 
+  const question = questions[currentIndex];
+  const answeredCount = answers.filter((a) => a !== null).length;
+
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="flex justify-between items-start mb-1">
-        <h1 className="text-2xl font-bold">{quizTitle}</h1>
+    <div className="p-8 max-w-3xl mx-auto animate-fade-up">
+      <div className="flex justify-between items-start gap-4 mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{quizTitle}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            Đã trả lời {answeredCount}/{questions.length} câu
+          </p>
+        </div>
         {!submitted && timeLeft !== null && (
-          <span
-            className={`px-3 py-1 rounded font-mono text-sm ${
-              timeLeft <= 30
-                ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            }`}
-          >
-            ⏱ {formatTime(timeLeft)}
-          </span>
+          <Badge variant={timeLeft <= 30 ? "danger" : "default"} className="text-sm px-3 py-1.5">
+            <Clock size={14} />
+            {formatTime(timeLeft)}
+          </Badge>
         )}
       </div>
 
       {!submitted ? (
         <>
-          <p className="text-gray-500 mb-4">
-            Câu {currentIndex + 1} / {questions.length}
-          </p>
+          <Card className="p-6">
+            <p className="text-sm text-primary font-medium mb-2">
+              Câu {currentIndex + 1} / {questions.length}
+            </p>
+            <p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
 
-          <p className="text-lg mb-6">{questions[currentIndex].content}</p>
+            <div className="flex flex-col gap-3">
+              {question.options.map((option, index) => {
+                const isSelected = answers[currentIndex] === index;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleSelect(index)}
+                    className={cn(
+                      "text-left px-4 py-3 rounded-lg border transition-all duration-150",
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                      isSelected
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-800 hover:border-primary/50"
+                    )}
+                  >
+                    <span className="font-medium mr-2">{String.fromCharCode(65 + index)}.</span>
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
 
-          <div className="flex flex-col gap-3">
-            {questions[currentIndex].options.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => handleSelect(index)}
-                className={`text-left px-4 py-3 rounded-lg border ${
-                  answers[currentIndex] === index
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-700"
-                }`}
+            <div className="flex justify-between mt-8">
+              <Button
+                onClick={handlePrevious}
+                disabled={currentIndex === 0}
+                variant="secondary"
+                leftIcon={<ChevronLeft size={16} />}
               >
-                {String.fromCharCode(65 + index)}. {option}
-              </button>
-            ))}
-          </div>
+                Trước
+              </Button>
 
-          <div className="flex justify-between mt-8">
-            <button
-              onClick={handlePrevious}
-              disabled={currentIndex === 0}
-              className="px-5 py-2 rounded bg-gray-300 disabled:opacity-40"
-            >
-              Previous
-            </button>
+              {currentIndex === questions.length - 1 ? (
+                <Button onClick={handleSubmit} variant="danger" rightIcon={<Send size={16} />}>
+                  Nộp bài
+                </Button>
+              ) : (
+                <Button onClick={handleNext} variant="primary" rightIcon={<ChevronRight size={16} />}>
+                  Tiếp
+                </Button>
+              )}
+            </div>
+          </Card>
 
-            {currentIndex === questions.length - 1 ? (
-              <button
-                onClick={handleSubmit}
-                className="px-5 py-2 rounded bg-red-600 text-white"
-              >
-                Submit
-              </button>
-            ) : (
-              <button
-                onClick={handleNext}
-                className="px-5 py-2 rounded bg-green-600 text-white"
-              >
-                Next
-              </button>
-            )}
-          </div>
+          {/* Question Navigator */}
+          <Card className="p-4 mt-4">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+              Chuyển nhanh đến câu
+            </p>
+            <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
+              {questions.map((_, i) => {
+                const isCurrent = i === currentIndex;
+                const isAnswered = answers[i] !== null;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentIndex(i)}
+                    className={cn(
+                      "h-9 w-9 rounded-md text-sm font-medium border transition-all duration-150",
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                      isCurrent
+                        ? "bg-primary text-white border-primary"
+                        : isAnswered
+                        ? "bg-primary/10 text-primary border-primary/30"
+                        : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-primary/50"
+                    )}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
         </>
       ) : (
-        <div className="text-center mt-8">
-          <h2 className="text-3xl font-bold mb-4">Kết quả</h2>
-          <p className="text-xl mb-6">
+        <Card className="p-8 text-center">
+          <CheckCircle2 size={40} className="mx-auto text-success mb-3" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kết quả</h2>
+          <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
             Đúng{" "}
-            {questions.filter((q, i) => answers[i] === q.correct_index).length}/
-            {questions.length} câu
+            <span className="text-primary font-semibold">
+              {questions.filter((q, i) => answers[i] === q.correct_index).length}
+            </span>
+            /{questions.length} câu
           </p>
 
-          <button
-            onClick={() => router.push(`/review/${quizId}`)}
-            className="px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-          >
+          <Button onClick={() => router.push(`/review/${quizId}`)} variant="primary" size="lg">
             Xem lại đáp án
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
     </div>
   );

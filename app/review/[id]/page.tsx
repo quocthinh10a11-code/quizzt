@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Check, X } from "lucide-react";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 type StoredQuestion = {
   id: number;
@@ -35,16 +39,13 @@ export default function ReviewPage() {
 
   if (!result) {
     return (
-      <div className="p-8 text-center text-gray-500">
-        Bạn chưa làm bộ đề này. Hãy bấm &quot;Làm bài&quot; trước.
-        <div className="mt-4">
-          <button
-            onClick={() => router.push(`/practice/${quizId}`)}
-            className="px-5 py-2 rounded bg-blue-600 text-white"
-          >
-            Làm bài ngay
-          </button>
-        </div>
+      <div className="p-8 text-center animate-fade-up">
+        <p className="text-gray-500 dark:text-gray-400 mb-4">
+          Bạn chưa làm bộ đề này. Hãy bấm &quot;Làm bài&quot; trước.
+        </p>
+        <Button onClick={() => router.push(`/practice/${quizId}`)} variant="primary">
+          Làm bài ngay
+        </Button>
       </div>
     );
   }
@@ -54,46 +55,57 @@ export default function ReviewPage() {
   ).length;
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">Xem lại đáp án</h1>
-      <p className="text-lg text-gray-500 mb-6">
-        Đúng {correctCount}/{result.questions.length} câu
+    <div className="p-8 max-w-3xl mx-auto animate-fade-up">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Xem lại đáp án</h1>
+      <p className="text-gray-500 dark:text-gray-400 mb-6">
+        Đúng{" "}
+        <span className="text-primary font-semibold">{correctCount}</span>/
+        {result.questions.length} câu
       </p>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {result.questions.map((question, i) => {
           const selected = result.answers[i];
           const isCorrect = selected === question.correct_index;
 
           return (
-            <div
+            <Card
               key={question.id}
-              className={`border rounded-lg p-4 ${
-                isCorrect
-                  ? "border-green-300 bg-green-50 dark:bg-green-950/20"
-                  : "border-red-300 bg-red-50 dark:bg-red-950/20"
-              }`}
+              className={cn(
+                "p-5 border-l-4",
+                isCorrect ? "border-l-success" : "border-l-danger"
+              )}
             >
-              <p className="font-semibold mb-3">
-                Câu {i + 1}. {question.content}
-              </p>
+              <div className="flex items-start gap-2 mb-3">
+                {isCorrect ? (
+                  <Check size={18} className="text-success shrink-0 mt-0.5" />
+                ) : (
+                  <X size={18} className="text-danger shrink-0 mt-0.5" />
+                )}
+                <p className="font-medium text-gray-900 dark:text-white">
+                  Câu {i + 1}. {question.content}
+                </p>
+              </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5 pl-6">
                 {question.options.map((option, optIndex) => {
                   const isSelected = optIndex === selected;
                   const isTheCorrectOne = optIndex === question.correct_index;
 
-                  let style = "border-gray-300 dark:border-gray-700";
-                  if (isTheCorrectOne) {
-                    style = "border-green-500 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300";
-                  } else if (isSelected && !isCorrect) {
-                    style = "border-red-500 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300";
-                  }
-
                   return (
                     <div
                       key={optIndex}
-                      className={`px-3 py-2 rounded border ${style}`}
+                      className={cn(
+                        "px-3 py-2 rounded-lg border text-sm",
+                        isTheCorrectOne &&
+                          "border-success bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300",
+                        isSelected &&
+                          !isCorrect &&
+                          "border-danger bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300",
+                        !isTheCorrectOne &&
+                          !(isSelected && !isCorrect) &&
+                          "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300"
+                      )}
                     >
                       {String.fromCharCode(65 + optIndex)}. {option}
                       {isTheCorrectOne && " ✓"}
@@ -102,21 +114,20 @@ export default function ReviewPage() {
                   );
                 })}
                 {selected === null && (
-                  <p className="text-sm text-gray-500 mt-1">Bạn chưa chọn đáp án cho câu này.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Bạn chưa chọn đáp án cho câu này.
+                  </p>
                 )}
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
 
       <div className="text-center mt-8">
-        <button
-          onClick={() => router.push(`/practice/${quizId}`)}
-          className="px-5 py-2 rounded bg-gray-300 dark:bg-gray-700 dark:text-white"
-        >
+        <Button onClick={() => router.push(`/practice/${quizId}`)} variant="secondary">
           Làm lại bộ đề
-        </button>
+        </Button>
       </div>
     </div>
   );
