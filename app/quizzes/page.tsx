@@ -20,57 +20,34 @@ type QuizRow = {
   questions: { count: number }[];
 };
 
-
-export default function QuizzesPage() {
+export default function MyQuizzesPage() {
+  const { user, loading: authLoading } = useAuth();
   const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
-  const [usernames, setUsernames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-  if (authLoading) return;
+    if (authLoading || !user) return;
 
-  async function loadQuizzes() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("quizzes")
-      .select("id, title, description, updated_at, user_id, is_public, questions:questions(count)")
-      .order("updated_at", { ascending: false });
+    async function loadQuizzes() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id, title, description, updated_at, user_id, is_public, questions:questions(count)")
+        .eq("user_id", user!.id)
+        .order("updated_at", { ascending: false });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError(error.message);
+      } else {
+        setQuizzes(data ?? []);
+      }
       setLoading(false);
-      return;
     }
 
-    setQuizzes(data ?? []);
-
-    // Lấy username của các chủ sở hữu, gọi riêng để tránh lỗi PostgREST
-    // không tìm thấy relationship giữa quizzes và profiles
-    const ownerIds = Array.from(
-      new Set((data ?? []).map((q) => q.user_id).filter((id): id is string => !!id))
-    );
-
-    if (ownerIds.length > 0) {
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .in("id", ownerIds);
-
-      const map: Record<string, string> = {};
-      (profilesData ?? []).forEach((p) => {
-        map[p.id] = p.username;
-      });
-      setUsernames(map);
-    }
-
-    setLoading(false);
-  }
-
-  loadQuizzes();
-}, [authLoading, user?.id]);
+    loadQuizzes();
+  }, [authLoading, user]);
 
   const filteredQuizzes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -83,7 +60,7 @@ export default function QuizzesPage() {
       <div className="p-8 max-w-6xl mx-auto">
         <div className="flex justify-between items-center gap-4 mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Danh sách bộ đề
+            Bộ đề đã tạo
           </h1>
           <Link href="/quizzes/create" className="hidden sm:block">
             <Button variant="primary" leftIcon={<Plus size={16} />}>
@@ -94,11 +71,11 @@ export default function QuizzesPage() {
 
         <div className="mb-6 max-w-sm">
           <Input
-  placeholder="Tìm bộ đề theo tên..."
-  leftIcon={<Search size={16} />}
-  value={search}
-  onChange={(e) => setSearch(e.target.value)}
-/>
+            placeholder="Tìm bộ đề theo tên..."
+            leftIcon={<Search size={16} />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
         {error && (
@@ -115,7 +92,7 @@ export default function QuizzesPage() {
           <div className="flex flex-col items-center justify-center text-center py-20 text-gray-500 dark:text-gray-400">
             <FileQuestion size={40} className="mb-3 opacity-60" />
             <p className="font-medium">
-              {search ? "Không tìm thấy bộ đề nào phù hợp" : "Bạn chưa có bộ đề nào"}
+              {search ? "Không tìm thấy bộ đề nào phù hợp" : "Bạn chưa tạo bộ đề nào"}
             </p>
             {!search && (
               <Link href="/quizzes/create" className="mt-4">
@@ -128,31 +105,23 @@ export default function QuizzesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {filteredQuizzes.map((quiz) => (
-  <QuizCard
-    key={quiz.id}
-    id={quiz.id}
-    title={quiz.title}
-    description={quiz.description}
-    updatedAt={quiz.updated_at}
-    ownerUsername={quiz.user_id ? usernames[quiz.user_id] ?? null : null}
-    questions={quiz.questions[0]?.count ?? 0}
-    ownerId={quiz.user_id}
-    isPublic={quiz.is_public}
-  />
-))}
+              <QuizCard
+                key={quiz.id}
+                id={quiz.id}
+                title={quiz.title}
+                description={quiz.description}
+                updatedAt={quiz.updated_at}
+                ownerUsername={null}
+                questions={quiz.questions[0]?.count ?? 0}
+                ownerId={quiz.user_id}
+                isPublic={quiz.is_public}
+              />
+            ))}
           </div>
         )}
 
-        {/* FAB cho mobile */}
-        <Link
-          href="/quizzes/create"
-          className="sm:hidden fixed bottom-6 right-6 z-20"
-        >
-          <Button
-            variant="primary"
-            size="icon"
-            className="w-14 h-14 rounded-full shadow-lg"
-          >
+        <Link href="/quizzes/create" className="sm:hidden fixed bottom-6 right-6 z-20">
+          <Button variant="primary" size="icon" className="w-14 h-14 rounded-full shadow-lg">
             <Plus size={22} />
           </Button>
         </Link>
