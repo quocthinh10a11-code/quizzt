@@ -35,7 +35,7 @@ export default function EditQuizPage() {
   const quizId = Number(params.id);
   const { user, loading: authLoading } = useAuth();
   const [description, setDescription] = useState("");
-  
+  const [openedTempIds, setOpenedTempIds] = useState<Set<string>>(new Set());
   const [title, setTitle] = useState("");
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
