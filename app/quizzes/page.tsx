@@ -60,7 +60,7 @@ export default function MyQuizzesPage() {
       <div className="p-8 max-w-6xl mx-auto">
         <div className="flex justify-between items-center gap-4 mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Bộ đề đã tạo
+            Bộ đề của bạn
           </h1>
           <Link href="/quizzes/create" className="hidden sm:block">
             <Button variant="primary" leftIcon={<Plus size={16} />}>
