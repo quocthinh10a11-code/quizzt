@@ -67,11 +67,11 @@ export default function QuizzesPage() {
 
         <div className="mb-6 max-w-sm">
           <Input
-            placeholder="Tìm bộ đề theo tên..."
-            icon={<Search size={16} />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+  placeholder="Tìm bộ đề theo tên..."
+  leftIcon={<Search size={16} />}
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+/>
         </div>
 
         {error && (
