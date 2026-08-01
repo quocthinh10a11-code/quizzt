@@ -1,9 +1,11 @@
+export type Difficulty = "easy" | "medium" | "hard";
+
 export type ParsedQuestion = {
   content: string;
   options: string[];
   correctIndex: number | null;
+  difficulty: Difficulty;
 };
-
 const QUESTION_START_REGEX =
   /^(Câu|Cau|Question|Q)\s*\.?\s*\d+\s*[:.)\-]?|^\d+\s*[.):]/i;
 
@@ -137,7 +139,12 @@ export function parseText(rawInput: string): {
       );
       return;
     }
-    questions.push({ content: parsed.content, options: parsed.options, correctIndex: null });
+    questions.push({
+  content: parsed.content,
+  options: parsed.options,
+  correctIndex: null,
+  difficulty: "medium",
+});
   });
 
   return { questions, errors };

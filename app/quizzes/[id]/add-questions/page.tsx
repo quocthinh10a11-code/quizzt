@@ -87,11 +87,12 @@ export default function AddQuestionsPage() {
     setSaving(true);
 
     const rows = questions.map((q) => ({
-      quiz_id: quizId,
-      content: q.content,
-      options: q.options,
-      correct_index: q.correctIndex,
-    }));
+  quiz_id: quizId,
+  content: q.content,
+  options: q.options,
+  correct_index: q.correctIndex,
+  difficulty: q.difficulty,
+}));
 
     const { error } = await supabase.from("questions").insert(rows);
 

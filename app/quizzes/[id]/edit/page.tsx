@@ -17,8 +17,8 @@ type EditableQuestion = {
   content: string;
   options: string[];
   correct_index: number;
+  difficulty: "easy" | "medium" | "hard";
 };
-
 function makeTempId() {
   return Math.random().toString(36).slice(2);
 }
@@ -49,9 +49,10 @@ export default function EditQuizPage() {
   .single();
 
       const { data: questionData } = await supabase
-        .from("questions")
-        .select("id, content, options, correct_index")
-        .eq("quiz_id", quizId);
+  .from("questions")
+  .select("id, content, options, correct_index, difficulty")
+  .eq("quiz_id", quizId);
+
 
       if (quiz) {
   setTitle(quiz.title);
@@ -60,14 +61,15 @@ export default function EditQuizPage() {
 }
       if (questionData) {
         setQuestions(
-          questionData.map((q) => ({
-            id: q.id,
-            tempId: makeTempId(),
-            content: q.content,
-            options: q.options,
-            correct_index: q.correct_index,
-          }))
-        );
+  questionData.map((q) => ({
+    id: q.id,
+    tempId: makeTempId(),
+    content: q.content,
+    options: q.options,
+    correct_index: q.correct_index,
+    difficulty: q.difficulty,
+  }))
+);
       }
 
       setLoading(false);
@@ -112,17 +114,18 @@ export default function EditQuizPage() {
   }
 
   function addQuestion() {
-    setQuestions((prev) => [
-      ...prev,
-      {
-        id: null,
-        tempId: makeTempId(),
-        content: "",
-        options: ["", "", "", ""],
-        correct_index: 0,
-      },
-    ]);
-  }
+  setQuestions((prev) => [
+    ...prev,
+    {
+      id: null,
+      tempId: makeTempId(),
+      content: "",
+      options: ["", "", "", ""],
+      correct_index: 0,
+      difficulty: "medium",
+    },
+  ]);
+}
 
   function removeQuestion(tempId: string, id: number | null) {
     if (id !== null) {
@@ -170,13 +173,14 @@ export default function EditQuizPage() {
     const existing = questions.filter((q) => q.id !== null);
     for (const q of existing) {
       const { error } = await supabase
-        .from("questions")
-        .update({
-          content: q.content,
-          options: q.options,
-          correct_index: q.correct_index,
-        })
-        .eq("id", q.id);
+  .from("questions")
+  .update({
+    content: q.content,
+    options: q.options,
+    correct_index: q.correct_index,
+    difficulty: q.difficulty,
+  })
+  .eq("id", q.id);
 
       if (error) {
         setMessage(`Lỗi khi lưu câu "${q.content.slice(0, 20)}...": ${error.message}`);
@@ -188,14 +192,14 @@ export default function EditQuizPage() {
     const newOnes = questions.filter((q) => q.id === null);
     if (newOnes.length > 0) {
       const { error } = await supabase.from("questions").insert(
-        newOnes.map((q) => ({
-          quiz_id: quizId,
-          content: q.content,
-          options: q.options,
-          correct_index: q.correct_index,
-        }))
-      );
-
+  newOnes.map((q) => ({
+    quiz_id: quizId,
+    content: q.content,
+    options: q.options,
+    correct_index: q.correct_index,
+    difficulty: q.difficulty,
+  }))
+);
       if (error) {
         setMessage("Lỗi khi thêm câu hỏi mới: " + error.message);
         setSaving(false);
@@ -229,16 +233,24 @@ router.push("/");
       <div className="flex flex-col gap-4">
         {questions.map((q, index) => (
           <Card key={q.tempId} className="p-5">
-            <div className="flex justify-between items-center mb-3">
-              <span className="font-semibold text-gray-900 dark:text-white">Câu {index + 1}</span>
-              <button
-                onClick={() => removeQuestion(q.tempId, q.id)}
-                className="inline-flex items-center gap-1 text-danger text-sm hover:underline"
-              >
-                <Trash2 size={14} />
-                Xoá câu này
-              </button>
-            </div>
+            <div className="flex justify-between items-center mb-3 gap-3">
+  <span className="font-semibold text-gray-900 dark:text-white">Câu {index + 1}</span>
+  <div className="flex items-center gap-3">
+    <div className="w-32">
+      <Select
+        options={DIFFICULTY_OPTIONS}
+        value={q.difficulty}
+        onChange={(e) =>
+          updateQuestion(q.tempId, { difficulty: e.target.value as "easy" | "medium" | "hard" })
+        }
+      />
+    </div>
+    <button onClick={() => removeQuestion(q.tempId, q.id)} className="inline-flex items-center gap-1 text-danger text-sm hover:underline">
+      <Trash2 size={14} />
+      Xoá câu này
+    </button>
+  </div>
+</div>
 
             <Textarea
               value={q.content}

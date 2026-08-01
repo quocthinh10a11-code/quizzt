@@ -15,6 +15,7 @@ type Question = {
   content: string;
   options: string[];
   correct_index: number;
+  difficulty: "easy" | "medium" | "hard";
 };
 
 export default function PracticePage() {
@@ -47,9 +48,9 @@ export default function PracticePage() {
         .single();
 
       const { data: questionData } = await supabase
-        .from("questions")
-        .select("id, content, options, correct_index")
-        .eq("quiz_id", quizId);
+  .from("questions")
+  .select("id, content, options, correct_index, difficulty")
+  .eq("quiz_id", quizId);
 
       if (quiz) setQuizTitle(quiz.title);
       if (questionData) {
@@ -143,7 +144,12 @@ export default function PracticePage() {
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   }
-
+  const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
+  const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
+    easy: "success",
+    medium: "warning",
+    hard: "danger",
+  };
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Đang tải câu hỏi...</div>;
   }
@@ -223,9 +229,14 @@ export default function PracticePage() {
       {!submitted ? (
         <>
           <Card className="p-6">
-            <p className="text-sm text-primary font-medium mb-2">
-              Câu {currentIndex + 1} / {questions.length}
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-primary font-medium">
+                Câu {currentIndex + 1} / {questions.length}
+              </p>
+              <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
+                {DIFFICULTY_LABEL[question.difficulty]}
+              </Badge>
+            </div>
             <p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
 
             <div className="flex flex-col gap-3">
