@@ -27,6 +27,7 @@ export default function QuizzesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
   if (authLoading) return;
