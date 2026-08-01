@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Trash2, Plus, Save } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext"; // sửa đường dẫn đúng theo project của bạn
+import { useAuth } from "@/context/AuthContext";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Textarea from "@/components/ui/Textarea";
+import Skeleton from "@/components/ui/Skeleton";
 
 type EditableQuestion = {
-  id: number | null; // null = câu mới thêm, chưa lưu
-  tempId: string; // key ổn định cho React, không đổi khi id thật thay đổi
+  id: number | null;
+  tempId: string;
   content: string;
   options: string[];
   correct_index: number;
@@ -69,14 +75,18 @@ export default function EditQuizPage() {
   }, [quizId]);
 
   if (authLoading || loading) {
-    return <div className="p-8 text-center">Đang tải...</div>;
+    return (
+      <div className="p-8 max-w-2xl mx-auto flex flex-col gap-4">
+        <Skeleton className="h-8 w-1/3" />
+        <Skeleton className="h-32 rounded-xl" />
+        <Skeleton className="h-32 rounded-xl" />
+      </div>
+    );
   }
 
-  // Chặn nếu không phải chủ sở hữu (RLS ở Supabase cũng đã chặn ở tầng backend,
-  // đây là chặn thêm ở UI để trải nghiệm rõ ràng hơn)
   if (!user || ownerId !== user.id) {
     return (
-      <div className="p-8 text-center text-red-600">
+      <div className="p-8 text-center text-danger">
         Bạn không có quyền chỉnh sửa bộ đề này.
       </div>
     );
@@ -123,7 +133,6 @@ export default function EditQuizPage() {
     setSaving(true);
     setMessage(null);
 
-    // Validate cơ bản
     for (const q of questions) {
       if (!q.content.trim() || q.options.some((o) => !o.trim())) {
         setMessage("Mỗi câu hỏi cần đủ nội dung và 4 đáp án, không được để trống.");
@@ -132,7 +141,6 @@ export default function EditQuizPage() {
       }
     }
 
-    // 1. Cập nhật tiêu đề
     const { error: titleError } = await supabase
       .from("quizzes")
       .update({ title })
@@ -144,7 +152,6 @@ export default function EditQuizPage() {
       return;
     }
 
-    // 2. Xoá các câu đã bị xoá trên UI
     if (deletedIds.length > 0) {
       const { error: deleteError } = await supabase
         .from("questions")
@@ -158,7 +165,6 @@ export default function EditQuizPage() {
       }
     }
 
-    // 3. Cập nhật câu đã có id
     const existing = questions.filter((q) => q.id !== null);
     for (const q of existing) {
       const { error } = await supabase
@@ -177,7 +183,6 @@ export default function EditQuizPage() {
       }
     }
 
-    // 4. Thêm các câu mới (id === null)
     const newOnes = questions.filter((q) => q.id === null);
     if (newOnes.length > 0) {
       const { error } = await supabase.from("questions").insert(
@@ -203,40 +208,36 @@ export default function EditQuizPage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Chỉnh sửa bộ đề</h1>
+    <div className="p-8 max-w-2xl mx-auto animate-fade-up">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Chỉnh sửa bộ đề</h1>
 
-      <label className="block mb-6">
-        <span className="text-sm text-gray-500">Tiêu đề bộ đề</span>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full mt-1 px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-        />
-      </label>
+      <Input
+        label="Tiêu đề bộ đề"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="mb-6"
+      />
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {questions.map((q, index) => (
-          <div
-            key={q.tempId}
-            className="border rounded-lg p-4 border-gray-300 dark:border-gray-700"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-semibold">Câu {index + 1}</span>
+          <Card key={q.tempId} className="p-5">
+            <div className="flex justify-between items-center mb-3">
+              <span className="font-semibold text-gray-900 dark:text-white">Câu {index + 1}</span>
               <button
                 onClick={() => removeQuestion(q.tempId, q.id)}
-                className="text-red-600 text-sm hover:underline"
+                className="inline-flex items-center gap-1 text-danger text-sm hover:underline"
               >
+                <Trash2 size={14} />
                 Xoá câu này
               </button>
             </div>
 
-            <textarea
+            <Textarea
               value={q.content}
               onChange={(e) => updateQuestion(q.tempId, { content: e.target.value })}
               placeholder="Nội dung câu hỏi"
-              className="w-full px-3 py-2 border rounded mb-3 dark:bg-gray-800 dark:border-gray-700"
               rows={2}
+              className="mb-3"
             />
 
             <div className="flex flex-col gap-2">
@@ -247,54 +248,47 @@ export default function EditQuizPage() {
                     name={`correct-${q.tempId}`}
                     checked={q.correct_index === optIndex}
                     onChange={() => updateQuestion(q.tempId, { correct_index: optIndex })}
+                    className="accent-primary w-4 h-4 shrink-0"
                   />
-                  <span className="w-5">{String.fromCharCode(65 + optIndex)}.</span>
-                  <input
+                  <span className="w-5 text-sm text-gray-500 dark:text-gray-400">
+                    {String.fromCharCode(65 + optIndex)}.
+                  </span>
+                  <Input
                     value={opt}
                     onChange={(e) => updateOption(q.tempId, optIndex, e.target.value)}
-                    className="flex-1 px-3 py-1.5 border rounded dark:bg-gray-800 dark:border-gray-700"
+                    className="flex-1"
                   />
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               Chọn nút tròn ở đầu dòng để đánh dấu đáp án đúng.
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 
       <button
         onClick={addQuestion}
-        className="mt-4 px-4 py-2 rounded border border-dashed border-gray-400 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 w-full"
+        className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm hover:border-primary hover:text-primary transition-colors"
       >
-        + Thêm câu hỏi
+        <Plus size={16} />
+        Thêm câu hỏi
       </button>
 
       {message && (
-        <p
-          className={`mt-4 text-sm ${
-            message.startsWith("Đã lưu") ? "text-green-600" : "text-red-600"
-          }`}
-        >
+        <p className={`mt-4 text-sm ${message.startsWith("Đã lưu") ? "text-success" : "text-danger"}`}>
           {message}
         </p>
       )}
 
       <div className="flex gap-3 mt-6">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-5 py-2 rounded bg-blue-600 text-white disabled:opacity-50"
-        >
+        <Button onClick={handleSave} disabled={saving} loading={saving} variant="primary" leftIcon={!saving && <Save size={16} />}>
           {saving ? "Đang lưu..." : "Lưu thay đổi"}
-        </button>
-        <button
-          onClick={() => router.push("/quizzes")}
-          className="px-5 py-2 rounded bg-gray-300 dark:bg-gray-700 dark:text-white"
-        >
+        </Button>
+        <Button onClick={() => router.push("/quizzes")} variant="secondary">
           Huỷ
-        </button>
+        </Button>
       </div>
     </div>
   );
