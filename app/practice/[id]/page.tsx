@@ -284,6 +284,29 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
     </button>
   </div>
 </div>
+<p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
+
+            <div className="flex flex-col gap-3">
+              {question.options.map((option, index) => {
+                const isSelected = answers[currentIndex] === index;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleSelect(index)}
+                    className={cn(
+                      "text-left px-4 py-3 rounded-lg border transition-all duration-150",
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                      isSelected
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-800 hover:border-primary/50"
+                    )}
+                  >
+                    <span className="font-medium mr-2">{String.fromCharCode(65 + index)}.</span>
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
 
             <div className="flex justify-between mt-8">
               <Button
@@ -308,34 +331,40 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
           </Card>
 
           {/* Question Navigator */}
-          <Card className="p-4 mt-4">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
-              Chuyển nhanh đến câu
-            </p>
-            <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
-              {questions.map((_, i) => {
-                const isCurrent = i === currentIndex;
-                const isAnswered = answers[i] !== null;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentIndex(i)}
-                    className={cn(
-                      "h-9 w-9 rounded-md text-sm font-medium border transition-all duration-150",
-                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-                      isCurrent
-                        ? "bg-primary text-white border-primary"
-                        : isAnswered
-                        ? "bg-primary/10 text-primary border-primary/30"
-                        : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-primary/50"
-                    )}
-                  >
-                    {i + 1}
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
+<Card className="p-4 mt-4">
+  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+    Chuyển nhanh đến câu
+  </p>
+  <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
+    {questions.map((q, i) => {
+      const isCurrent = i === currentIndex;
+      const isAnswered = answers[i] !== null;
+      const isBookmarked = bookmarkedIds.has(q.id);
+      return (
+        <button
+          key={i}
+          onClick={() => setCurrentIndex(i)}
+          className={cn(
+            "relative h-9 w-9 rounded-md text-sm font-medium border transition-all duration-150",
+            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+            isCurrent
+              ? "bg-primary text-white border-primary"
+              : isBookmarked
+              ? "bg-warning/10 text-warning border-warning/40"
+              : isAnswered
+              ? "bg-primary/10 text-primary border-primary/30"
+              : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-primary/50"
+          )}
+        >
+          {i + 1}
+          {isBookmarked && !isCurrent && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warning" />
+          )}
+        </button>
+      );
+    })}
+  </div>
+</Card>
         </>
       ) : (
         <Card className="p-8 text-center">
