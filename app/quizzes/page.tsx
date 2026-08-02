@@ -72,6 +72,10 @@ export default function MyQuizzesPage() {
     loadQuizzes();
   }, [authLoading, user]);
 
+  function handleQuizDeleted(id: number) {
+    setQuizzes((prev) => prev.filter((q) => q.id !== id));
+  }
+
   const chaptersOfSelectedSubject = useMemo(() => {
   if (filterSubject === "all") return [];
   return chapters.filter((c) => c.subject_id === Number(filterSubject));
@@ -174,6 +178,7 @@ const filteredQuizzes = useMemo(() => {
                 questions={quiz.questions[0]?.count ?? 0}
                 ownerId={quiz.user_id}
                 isPublic={quiz.is_public}
+                onDeleted={handleQuizDeleted}
               />
             ))}
           </div>
@@ -188,4 +193,3 @@ const filteredQuizzes = useMemo(() => {
     </RequireAuth>
   );
 }
-

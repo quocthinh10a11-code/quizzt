@@ -67,6 +67,10 @@ export default function HomePage() {
     loadQuizzes();
   }, [authLoading, user?.id]);
 
+  function handleQuizDeleted(id: number) {
+    setQuizzes((prev) => prev.filter((q) => q.id !== id));
+  }
+
   const filteredQuizzes = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return quizzes;
@@ -119,6 +123,7 @@ export default function HomePage() {
                 questions={quiz.questions[0]?.count ?? 0}
                 ownerId={quiz.user_id}
                 isPublic={quiz.is_public}
+                onDeleted={handleQuizDeleted}
               />
             ))}
           </div>
