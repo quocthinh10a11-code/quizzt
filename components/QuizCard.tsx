@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Play, RotateCcw, Plus, Pencil, Globe, Lock, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Play, RotateCcw, Plus, Pencil, Globe, Lock, User, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { cloneQuiz } from "@/lib/cloneQuiz";
+import { useToast } from "@/components/ui/Toast";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -31,11 +34,26 @@ export default function QuizCard({
   isPublic,
 }: QuizCardProps) {
   const { user } = useAuth();
+  const router = useRouter();
+  const { showToast } = useToast();
   const isOwner = !!user && user.id === ownerId;
+  const [cloning, setCloning] = useState(false);
+  async function handleClone() {
+    if (!user || cloning) return;
+    setCloning(true);
 
-  const [publicState, setPublicState] = useState(isPublic);
-  const [toggling, setToggling] = useState(false);
+    const { newQuizId, error } = await cloneQuiz(id, user.id);
 
+    setCloning(false);
+
+    if (error || !newQuizId) {
+      showToast(error ?? "Không thể nhân bản bộ đề.", "error");
+      return;
+    }
+
+    showToast("Đã nhân bản bộ đề! Bạn có thể chỉnh sửa ngay.", "success");
+    router.push(`/quizzes/${newQuizId}/edit`);
+  }
   async function handleTogglePublic() {
     if (toggling) return;
 
@@ -117,7 +135,17 @@ export default function QuizCard({
             Ôn tập
           </Button>
         </Link>
-
+        {!isOwner && isPublic && (
+          <Button
+            size="sm"
+            variant="outline"
+            leftIcon={<Copy size={14} />}
+            loading={cloning}
+            onClick={handleClone}
+          >
+            Nhân bản
+          </Button>
+        )}
         {isOwner && (
           <>
             <Link href={`/quizzes/${id}/add-questions`}>
