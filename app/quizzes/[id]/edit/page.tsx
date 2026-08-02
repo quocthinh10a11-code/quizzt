@@ -11,6 +11,7 @@ import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
 import Skeleton from "@/components/ui/Skeleton";
 import Select from "@/components/ui/Select";
+import SubjectChapterPicker from "@/components/SubjectChapterPicker";
 
 const DIFFICULTY_OPTIONS = [
   { value: "easy", label: "Dễ" },
@@ -43,14 +44,15 @@ export default function EditQuizPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-
+  const [subjectId, setSubjectId] = useState<number | null>(null);
+  const [chapterId, setChapterId] = useState<number | null>(null);
   useEffect(() => {
     async function load() {
       setLoading(true);
 
       const { data: quiz } = await supabase
   .from("quizzes")
-  .select("title, description, user_id")
+  .select("title, description, user_id, chapter_id")
   .eq("id", quizId)
   .single();
 
@@ -64,6 +66,16 @@ export default function EditQuizPage() {
   setTitle(quiz.title);
   setDescription(quiz.description ?? "");
   setOwnerId(quiz.user_id);
+  setChapterId(quiz.chapter_id);
+
+  if (quiz.chapter_id) {
+    const { data: chapterRow } = await supabase
+      .from("chapters")
+      .select("subject_id")
+      .eq("id", quiz.chapter_id)
+      .single();
+    if (chapterRow) setSubjectId(chapterRow.subject_id);
+  }
 }
       if (questionData) {
   const loaded = questionData.map((q) => ({
@@ -155,7 +167,7 @@ export default function EditQuizPage() {
 
     const { error: titleError } = await supabase
   .from("quizzes")
-  .update({ title, description: description.trim() || null })
+  .update({ title, description: description.trim() || null, chapter_id: chapterId })
   .eq("id", quizId);
 
     if (titleError) {
@@ -236,7 +248,19 @@ router.push("/");
   rows={2}
   className="mb-6"
 />
-
+{user && (
+  <div className="mb-6">
+    <SubjectChapterPicker
+      userId={user.id}
+      subjectId={subjectId}
+      chapterId={chapterId}
+      onChange={({ subjectId, chapterId }) => {
+        setSubjectId(subjectId);
+        setChapterId(chapterId);
+      }}
+    />
+  </div>
+)}
       <div className="flex flex-col gap-4">
         {questions.map((q, index) => (
           <Card key={q.tempId} className="p-5">

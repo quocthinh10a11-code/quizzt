@@ -14,12 +14,14 @@ import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
 import Badge from "@/components/ui/Badge";
 import Select from "@/components/ui/Select";
+import SubjectChapterPicker from "@/components/SubjectChapterPicker";
+
 export default function CreateQuizPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [isPublic, setIsPublic] = useState(true);
   const [title, setTitle] = useState("");
-  const [rawText, setRawText] = useState("");
+  const [rawText, setRawText] = useState(""); 
   const [questions, setQuestions] = useState<ParsedQuestion[]>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -28,6 +30,8 @@ export default function CreateQuizPage() {
   const [fileError, setFileError] = useState("");
   const [fileLoading, setFileLoading] = useState(false);
   const [description, setDescription] = useState("");
+  const [subjectId, setSubjectId] = useState<number | null>(null);
+  const [chapterId, setChapterId] = useState<number | null>(null);
   const DIFFICULTY_OPTIONS = [
   { value: "easy", label: "Dễ" },
   { value: "medium", label: "Trung bình" },
@@ -108,7 +112,13 @@ export default function CreateQuizPage() {
 
     const { data: quiz, error: quizError } = await supabase
   .from("quizzes")
-  .insert({ title, description: description.trim() || null, user_id: user.id, is_public: isPublic })
+  .insert({
+    title,
+    description: description.trim() || null,
+    user_id: user.id,
+    is_public: isPublic,
+    chapter_id: chapterId,
+  })
   .select()
   .single();
 
@@ -156,6 +166,17 @@ export default function CreateQuizPage() {
   rows={2}
   className="mb-4"
 />
+{user && (
+  <SubjectChapterPicker
+    userId={user.id}
+    subjectId={subjectId}
+    chapterId={chapterId}
+    onChange={({ subjectId, chapterId }) => {
+      setSubjectId(subjectId);
+      setChapterId(chapterId);
+    }}
+  />
+)}
 
           <label className="flex items-center gap-2 mb-6 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
             <input

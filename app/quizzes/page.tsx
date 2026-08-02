@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import Select from "@/components/ui/Select";
 
 type QuizRow = {
   id: number;
@@ -26,7 +27,28 @@ export default function MyQuizzesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [subjects, setSubjects] = useState<{ id: number; name: string }[]>([]);
+  const [chapters, setChapters] = useState<{ id: number; name: string; subject_id: number }[]>([]);
+  const [filterSubject, setFilterSubject] = useState<string>("all");
+  const [filterChapter, setFilterChapter] = useState<string>("all");
+  useEffect(() => {
+  if (!user) return;
+  async function loadFilters() {
+    const { data: subjectData } = await supabase
+      .from("subjects")
+      .select("id, name")
+      .eq("user_id", user!.id)
+      .order("name");
+    setSubjects(subjectData ?? []);
 
+    const { data: chapterData } = await supabase
+      .from("chapters")
+      .select("id, name, subject_id")
+      .in("subject_id", (subjectData ?? []).map((s) => s.id));
+    setChapters(chapterData ?? []);
+  }
+  loadFilters();
+}, [user]);
   useEffect(() => {
     if (authLoading || !user) return;
 
@@ -34,7 +56,7 @@ export default function MyQuizzesPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from("quizzes")
-        .select("id, title, description, updated_at, user_id, is_public, questions:questions(count)")
+        .select("id, title, description, updated_at, user_id, is_public, chapter_id, questions:questions(count)")
         .eq("user_id", user!.id)
         .order("updated_at", { ascending: false });
 
@@ -49,12 +71,28 @@ export default function MyQuizzesPage() {
     loadQuizzes();
   }, [authLoading, user]);
 
-  const filteredQuizzes = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return quizzes;
-    return quizzes.filter((quiz) => quiz.title.toLowerCase().includes(q));
-  }, [quizzes, search]);
+  const chaptersOfSelectedSubject = useMemo(() => {
+  if (filterSubject === "all") return [];
+  return chapters.filter((c) => c.subject_id === Number(filterSubject));
+}, [chapters, filterSubject]);
 
+const filteredQuizzes = useMemo(() => {
+  const q = search.trim().toLowerCase();
+  let result = quizzes;
+
+  if (q) {
+    result = result.filter((quiz) => quiz.title.toLowerCase().includes(q));
+  }
+
+  if (filterChapter !== "all") {
+    result = result.filter((quiz) => quiz.chapter_id === Number(filterChapter));
+  } else if (filterSubject !== "all") {
+    const chapterIds = new Set(chaptersOfSelectedSubject.map((c) => c.id));
+    result = result.filter((quiz) => quiz.chapter_id !== null && chapterIds.has(quiz.chapter_id));
+  }
+
+  return result;
+}, [quizzes, search, filterSubject, filterChapter, chaptersOfSelectedSubject]);
   return (
     <RequireAuth>
       <div className="p-8 max-w-6xl mx-auto">
@@ -77,6 +115,26 @@ export default function MyQuizzesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <div className="mb-6 flex flex-col sm:flex-row gap-3 max-w-2xl">
+  <div className="w-full sm:w-56">
+    <Select
+      options={[{ value: "all", label: "Tất cả môn học" }, ...subjects.map((s) => ({ value: String(s.id), label: s.name }))]}
+      value={filterSubject}
+      onChange={(e) => {
+        setFilterSubject(e.target.value);
+        setFilterChapter("all");
+      }}
+    />
+  </div>
+  <div className="w-full sm:w-56">
+    <Select
+      options={[{ value: "all", label: "Tất cả chương" }, ...chaptersOfSelectedSubject.map((c) => ({ value: String(c.id), label: c.name }))]}
+      value={filterChapter}
+      onChange={(e) => setFilterChapter(e.target.value)}
+      disabled={filterSubject === "all"}
+    />
+  </div>
+</div>
 
         {error && (
           <p className="text-danger text-sm mb-4">Lỗi tải dữ liệu: {error}</p>
@@ -129,3 +187,4 @@ export default function MyQuizzesPage() {
     </RequireAuth>
   );
 }
+
