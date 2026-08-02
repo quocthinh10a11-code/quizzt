@@ -18,6 +18,7 @@ type QuizRow = {
   updated_at: string;
   user_id: string | null;
   is_public: boolean;
+  chapter_id: number | null;
   questions: { count: number }[];
 };
 
