@@ -337,32 +337,35 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   </p>
   <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
     {questions.map((q, i) => {
-      const isCurrent = i === currentIndex;
-      const isAnswered = answers[i] !== null;
-      const isBookmarked = bookmarkedIds.has(q.id);
-      return (
-        <button
-          key={i}
-          onClick={() => setCurrentIndex(i)}
-          className={cn(
-            "relative h-9 w-9 rounded-md text-sm font-medium border transition-all duration-150",
-            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-            isCurrent
-              ? "bg-primary text-white border-primary"
-              : isBookmarked
-              ? "bg-warning/10 text-warning border-warning/40"
-              : isAnswered
-              ? "bg-primary/10 text-primary border-primary/30"
-              : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-primary/50"
-          )}
-        >
-          {i + 1}
-          {isBookmarked && !isCurrent && (
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warning" />
-          )}
-        </button>
-      );
-    })}
+  const isCurrent = i === currentIndex;
+  const isAnswered = answers[i] !== null;
+  const isBookmarked = bookmarkedIds.has(q.id);
+
+  return (
+    <button
+      key={i}
+      onClick={() => setCurrentIndex(i)}
+      className={cn(
+        "relative h-9 w-9 rounded-md text-sm font-medium border transition-all duration-150",
+        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+        isCurrent
+          ? "bg-primary text-white border-primary"
+          : isBookmarked && isAnswered
+          ? "bg-primary/10 text-primary border-warning border-2"
+          : isBookmarked
+          ? "bg-warning/10 text-warning border-warning/40"
+          : isAnswered
+          ? "bg-primary/10 text-primary border-primary/30"
+          : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-primary/50"
+      )}
+    >
+      {i + 1}
+      {isBookmarked && !isCurrent && (
+        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warning" />
+      )}
+    </button>
+  );
+})}
   </div>
 </Card>
         </>
