@@ -15,7 +15,8 @@ import Textarea from "@/components/ui/Textarea";
 import Badge from "@/components/ui/Badge";
 import Select from "@/components/ui/Select";
 import SubjectChapterPicker from "@/components/SubjectChapterPicker";
-
+import TagPicker from "@/components/TagPicker";
+import { syncQuizTags } from "@/lib/quizTags";
 export default function CreateQuizPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -32,6 +33,7 @@ export default function CreateQuizPage() {
   const [description, setDescription] = useState("");
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [chapterId, setChapterId] = useState<number | null>(null);
+  const [tagNames, setTagNames] = useState<string[]>([]);
   const DIFFICULTY_OPTIONS = [
   { value: "easy", label: "Dễ" },
   { value: "medium", label: "Trung bình" },
@@ -137,10 +139,18 @@ export default function CreateQuizPage() {
 }));
     const { error: questionsError } = await supabase.from("questions").insert(rows);
 
+    if (questionsError) {
+      setSaving(false);
+      setSaveError(questionsError.message);
+      return;
+    }
+
+    const { error: tagsError } = await syncQuizTags(quiz.id, user.id, tagNames);
+
     setSaving(false);
 
-    if (questionsError) {
-      setSaveError(questionsError.message);
+    if (tagsError) {
+      setSaveError(tagsError);
       return;
     }
 
@@ -176,6 +186,15 @@ export default function CreateQuizPage() {
       setChapterId(chapterId);
     }}
   />
+)}
+{user && (
+  <div className="mt-4">
+    <TagPicker
+      userId={user.id}
+      selectedNames={tagNames}
+      onChange={setTagNames}
+    />
+  </div>
 )}
 
           <label className="flex items-center gap-2 mb-6 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
