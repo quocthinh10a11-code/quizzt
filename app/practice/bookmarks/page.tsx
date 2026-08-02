@@ -9,6 +9,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
+import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 
 type Question = {
@@ -36,6 +37,7 @@ export default function BookmarksPracticePage() {
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
+  const [notes, setNotes] = useState<Record<number, string>>({});
 
   const [started, setStarted] = useState(false);
   const [minutesInput, setMinutesInput] = useState("15");
@@ -60,6 +62,18 @@ export default function BookmarksPracticePage() {
       setQuestions(list);
       setAnswers(Array(list.length).fill(null));
       setBookmarkedIds(new Set(list.map((q) => q.id)));
+
+      const { data: noteData } = await supabase
+        .from("notes")
+        .select("question_id, content")
+        .eq("user_id", user!.id)
+        .in("question_id", list.map((q) => q.id));
+      const notesMap: Record<number, string> = {};
+      (noteData ?? []).forEach((n) => {
+        notesMap[n.question_id] = n.content;
+      });
+      setNotes(notesMap);
+
       setLoading(false);
     }
 
@@ -253,6 +267,16 @@ export default function BookmarksPracticePage() {
                 <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
                   {DIFFICULTY_LABEL[question.difficulty]}
                 </Badge>
+                {user && (
+                  <NoteEditor
+                    userId={user.id}
+                    questionId={question.id}
+                    initialContent={notes[question.id] ?? ""}
+                    onSaved={(content) =>
+                      setNotes((prev) => ({ ...prev, [question.id]: content }))
+                    }
+                  />
+                )}
                 <button
                   onClick={() => handleToggleBookmark(question.id)}
                   aria-label="Đánh dấu câu hỏi"

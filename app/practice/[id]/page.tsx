@@ -2,16 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2 } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2, LogOut, Bookmark, BookmarkCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
+import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
-import { LogOut } from "lucide-react";
-import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+
 type Question = {
   id: number;
   content: string;
@@ -20,10 +20,19 @@ type Question = {
   difficulty: "easy" | "medium" | "hard";
 };
 
+const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
+const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
+  easy: "success",
+  medium: "warning",
+  hard: "danger",
+};
+
 export default function PracticePage() {
   const params = useParams();
   const quizId = Number(params.id);
   const router = useRouter();
+  const { user } = useAuth();
+
   const [quizTitle, setQuizTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,13 +40,13 @@ export default function PracticePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [submitted, setSubmitted] = useState(false);
-  const { user } = useAuth();
-const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
-  // ----- Đếm ngược -----
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
+  const [notes, setNotes] = useState<Record<number, string>>({});
+
   const [started, setStarted] = useState(false);
   const [minutesInput, setMinutesInput] = useState("15");
   const [noLimit, setNoLimit] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null); // giây, null = không giới hạn
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -51,23 +60,37 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
         .single();
 
       const { data: questionData } = await supabase
-  .from("questions")
-  .select("id, content, options, correct_index, difficulty")
-  .eq("quiz_id", quizId);
+        .from("questions")
+        .select("id, content, options, correct_index, difficulty")
+        .eq("quiz_id", quizId);
 
       if (quiz) setQuizTitle(quiz.title);
       if (questionData) {
         setQuestions(questionData);
         setAnswers(Array(questionData.length).fill(null));
+
         if (user) {
-    const { data: bookmarkData } = await supabase
-      .from("bookmarks")
-      .select("question_id")
-      .eq("user_id", user.id)
-      .in("question_id", questionData.map((q) => q.id));
-    setBookmarkedIds(new Set((bookmarkData ?? []).map((b) => b.question_id)));
-  }
-}
+          const ids = questionData.map((q) => q.id);
+
+          const { data: bookmarkData } = await supabase
+            .from("bookmarks")
+            .select("question_id")
+            .eq("user_id", user.id)
+            .in("question_id", ids);
+          setBookmarkedIds(new Set((bookmarkData ?? []).map((b) => b.question_id)));
+
+          const { data: noteData } = await supabase
+            .from("notes")
+            .select("question_id, content")
+            .eq("user_id", user.id)
+            .in("question_id", ids);
+          const notesMap: Record<number, string> = {};
+          (noteData ?? []).forEach((n) => {
+            notesMap[n.question_id] = n.content;
+          });
+          setNotes(notesMap);
+        }
+      }
 
       setLoading(false);
     }
@@ -80,29 +103,29 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
     updated[currentIndex] = optionIndex;
     setAnswers(updated);
   }
+
   async function handleToggleBookmark(questionId: number) {
-  if (!user) return;
-  const isBookmarked = bookmarkedIds.has(questionId);
+    if (!user) return;
+    const isBookmarked = bookmarkedIds.has(questionId);
 
-  setBookmarkedIds((prev) => {
-    const next = new Set(prev);
-    isBookmarked ? next.delete(questionId) : next.add(questionId);
-    return next;
-  });
-
-  const { error } = isBookmarked
-    ? await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("question_id", questionId)
-    : await supabase.from("bookmarks").insert({ user_id: user.id, question_id: questionId });
-
-  if (error) {
-    // lỗi -> hoàn tác lại UI
     setBookmarkedIds((prev) => {
       const next = new Set(prev);
-      isBookmarked ? next.add(questionId) : next.delete(questionId);
+      isBookmarked ? next.delete(questionId) : next.add(questionId);
       return next;
     });
+
+    const { error } = isBookmarked
+      ? await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("question_id", questionId)
+      : await supabase.from("bookmarks").insert({ user_id: user.id, question_id: questionId });
+
+    if (error) {
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        isBookmarked ? next.add(questionId) : next.delete(questionId);
+        return next;
+      });
+    }
   }
-}
 
   function handleNext() {
     if (currentIndex < questions.length - 1) setCurrentIndex(currentIndex + 1);
@@ -117,33 +140,29 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    localStorage.setItem(
-      `quizResult:${quizId}`,
-      JSON.stringify({ questions, answers })
-    );
+    localStorage.setItem(`quizResult:${quizId}`, JSON.stringify({ questions, answers }));
     setSubmitted(true);
   }
-  function handleExit() {
-  const confirmed = window.confirm(
-    "Kết quả của bạn sẽ không được tính. Xác nhận thoát?"
-  );
-  if (confirmed) {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    router.push("/");
-  }
-}
-  function handleStart() {
-  setStarted(true);
-  if (!noLimit) {
-    const minutes = Math.max(1, parseInt(minutesInput, 10) || 15);
-    setTimeLeft(minutes * 60);
-  }
-}
 
-  // Chạy đồng hồ đếm ngược
+  function handleExit() {
+    const confirmed = window.confirm("Kết quả của bạn sẽ không được tính. Xác nhận thoát?");
+    if (confirmed) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      router.push("/");
+    }
+  }
+
+  function handleStart() {
+    setStarted(true);
+    if (!noLimit) {
+      const minutes = Math.max(1, parseInt(minutesInput, 10) || 15);
+      setTimeLeft(minutes * 60);
+    }
+  }
+
   useEffect(() => {
     if (!started || noLimit || timeLeft === null) return;
 
@@ -163,7 +182,6 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
     };
   }, [started, noLimit]);
 
-  // Hết giờ -> tự động nộp bài
   useEffect(() => {
     if (started && !submitted && timeLeft === 0) {
       handleSubmit();
@@ -172,18 +190,11 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   }, [timeLeft]);
 
   function formatTime(seconds: number) {
-    const m = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   }
-  const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
-  const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
-    easy: "success",
-    medium: "warning",
-    hard: "danger",
-  };
+
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Đang tải câu hỏi...</div>;
   }
@@ -192,7 +203,6 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
     return <div className="p-8 text-center text-gray-500">Bộ đề này chưa có câu hỏi nào.</div>;
   }
 
-  // ----- Màn hình cài đặt thời gian trước khi bắt đầu -----
   if (!started) {
     return (
       <div className="p-8 max-w-md mx-auto text-center animate-fade-up">
@@ -212,13 +222,13 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
 
           <div className={cn(noLimit && "opacity-40 pointer-events-none")}>
             <Input
-  type="number"
-  min={1}
-  label="Thời gian làm bài (phút)"
-  value={minutesInput}
-  onChange={(e) => setMinutesInput(e.target.value.replace(/[^0-9]/g, ""))}
-  disabled={noLimit}
-/>
+              type="number"
+              min={1}
+              label="Thời gian làm bài (phút)"
+              value={minutesInput}
+              onChange={(e) => setMinutesInput(e.target.value.replace(/[^0-9]/g, ""))}
+              disabled={noLimit}
+            />
           </div>
         </Card>
 
@@ -235,56 +245,66 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   return (
     <div className="p-8 max-w-3xl mx-auto animate-fade-up">
       <div className="flex justify-between items-start gap-4 mb-6">
-  <div>
-    <h1 className="text-xl font-bold text-gray-900 dark:text-white">{quizTitle}</h1>
-    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-      Đã trả lời {answeredCount}/{questions.length} câu
-    </p>
-  </div>
-  <div className="flex items-center gap-2">
-    {!submitted && (
-      <button
-        onClick={handleExit}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-danger transition-colors px-2 py-1"
-      >
-        <LogOut size={14} />
-        Thoát
-      </button>
-    )}
-    {!submitted && timeLeft !== null && (
-      <Badge variant={timeLeft <= 30 ? "danger" : "default"} className="text-sm px-3 py-1.5">
-        <Clock size={14} />
-        {formatTime(timeLeft)}
-      </Badge>
-    )}
-  </div>
-</div>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{quizTitle}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            Đã trả lời {answeredCount}/{questions.length} câu
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {!submitted && (
+            <button
+              onClick={handleExit}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-danger transition-colors px-2 py-1"
+            >
+              <LogOut size={14} />
+              Thoát
+            </button>
+          )}
+          {!submitted && timeLeft !== null && (
+            <Badge variant={timeLeft <= 30 ? "danger" : "default"} className="text-sm px-3 py-1.5">
+              <Clock size={14} />
+              {formatTime(timeLeft)}
+            </Badge>
+          )}
+        </div>
+      </div>
 
       {!submitted ? (
         <>
           <Card className="p-6">
             <div className="flex items-center justify-between mb-2">
-  <p className="text-sm text-primary font-medium">
-    Câu {currentIndex + 1} / {questions.length}
-  </p>
-  <div className="flex items-center gap-2">
-    <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
-      {DIFFICULTY_LABEL[question.difficulty]}
-    </Badge>
-    <button
-      onClick={() => handleToggleBookmark(question.id)}
-      aria-label="Đánh dấu câu hỏi"
-      className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-    >
-      {bookmarkedIds.has(question.id) ? (
-        <BookmarkCheck size={18} className="text-primary" />
-      ) : (
-        <Bookmark size={18} />
-      )}
-    </button>
-  </div>
-</div>
-<p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
+              <p className="text-sm text-primary font-medium">
+                Câu {currentIndex + 1} / {questions.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
+                  {DIFFICULTY_LABEL[question.difficulty]}
+                </Badge>
+                {user && (
+                  <NoteEditor
+                    userId={user.id}
+                    questionId={question.id}
+                    initialContent={notes[question.id] ?? ""}
+                    onSaved={(content) =>
+                      setNotes((prev) => ({ ...prev, [question.id]: content }))
+                    }
+                  />
+                )}
+                <button
+                  onClick={() => handleToggleBookmark(question.id)}
+                  aria-label="Đánh dấu câu hỏi"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                >
+                  {bookmarkedIds.has(question.id) ? (
+                    <BookmarkCheck size={18} className="text-primary" />
+                  ) : (
+                    <Bookmark size={18} />
+                  )}
+                </button>
+              </div>
+            </div>
+            <p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
 
             <div className="flex flex-col gap-3">
               {question.options.map((option, index) => {
@@ -330,44 +350,43 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
             </div>
           </Card>
 
-          {/* Question Navigator */}
-<Card className="p-4 mt-4">
-  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
-    Chuyển nhanh đến câu
-  </p>
-  <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
-    {questions.map((q, i) => {
-  const isCurrent = i === currentIndex;
-  const isAnswered = answers[i] !== null;
-  const isBookmarked = bookmarkedIds.has(q.id);
+          <Card className="p-4 mt-4">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+              Chuyển nhanh đến câu
+            </p>
+            <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
+              {questions.map((q, i) => {
+                const isCurrent = i === currentIndex;
+                const isAnswered = answers[i] !== null;
+                const isBookmarked = bookmarkedIds.has(q.id);
 
-  return (
-    <button
-      key={i}
-      onClick={() => setCurrentIndex(i)}
-      className={cn(
-        "relative h-9 w-9 rounded-md text-sm font-medium border transition-all duration-150",
-        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-        isCurrent
-          ? "bg-primary text-white border-primary"
-          : isBookmarked && isAnswered
-          ? "bg-primary/10 text-primary border-warning border-2"
-          : isBookmarked
-          ? "bg-warning/10 text-warning border-warning/40"
-          : isAnswered
-          ? "bg-primary/10 text-primary border-primary/30"
-          : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-primary/50"
-      )}
-    >
-      {i + 1}
-      {isBookmarked && !isCurrent && (
-        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warning" />
-      )}
-    </button>
-  );
-})}
-  </div>
-</Card>
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentIndex(i)}
+                    className={cn(
+                      "relative h-9 w-9 rounded-md text-sm font-medium border transition-all duration-150",
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                      isCurrent
+                        ? "bg-primary text-white border-primary"
+                        : isBookmarked && isAnswered
+                        ? "bg-primary/10 text-primary border-warning border-2"
+                        : isBookmarked
+                        ? "bg-warning/10 text-warning border-warning/40"
+                        : isAnswered
+                        ? "bg-primary/10 text-primary border-primary/30"
+                        : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-primary/50"
+                    )}
+                  >
+                    {i + 1}
+                    {isBookmarked && !isCurrent && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warning" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
         </>
       ) : (
         <Card className="p-8 text-center">

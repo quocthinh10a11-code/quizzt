@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 
 type StoredQuestion = {
@@ -23,17 +26,35 @@ export default function ReviewPage() {
   const params = useParams();
   const router = useRouter();
   const quizId = Number(params.id);
+  const { user } = useAuth();
 
   const [result, setResult] = useState<StoredResult | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [notes, setNotes] = useState<Record<number, string>>({});
 
   useEffect(() => {
     const raw = localStorage.getItem(`quizResult:${quizId}`);
     if (raw) {
-      setResult(JSON.parse(raw));
+      const parsed: StoredResult = JSON.parse(raw);
+      setResult(parsed);
+
+      if (user) {
+        supabase
+          .from("notes")
+          .select("question_id, content")
+          .eq("user_id", user.id)
+          .in("question_id", parsed.questions.map((q) => q.id))
+          .then(({ data }) => {
+            const notesMap: Record<number, string> = {};
+            (data ?? []).forEach((n) => {
+              notesMap[n.question_id] = n.content;
+            });
+            setNotes(notesMap);
+          });
+      }
     }
     setLoaded(true);
-  }, [quizId]);
+  }, [quizId, user?.id]);
 
   if (!loaded) return null;
 
@@ -76,15 +97,27 @@ export default function ReviewPage() {
                 isCorrect ? "border-l-success" : "border-l-danger"
               )}
             >
-              <div className="flex items-start gap-2 mb-3">
-                {isCorrect ? (
-                  <Check size={18} className="text-success shrink-0 mt-0.5" />
-                ) : (
-                  <X size={18} className="text-danger shrink-0 mt-0.5" />
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-start gap-2">
+                  {isCorrect ? (
+                    <Check size={18} className="text-success shrink-0 mt-0.5" />
+                  ) : (
+                    <X size={18} className="text-danger shrink-0 mt-0.5" />
+                  )}
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    Câu {i + 1}. {question.content}
+                  </p>
+                </div>
+                {user && (
+                  <NoteEditor
+                    userId={user.id}
+                    questionId={question.id}
+                    initialContent={notes[question.id] ?? ""}
+                    onSaved={(content) =>
+                      setNotes((prev) => ({ ...prev, [question.id]: content }))
+                    }
+                  />
                 )}
-                <p className="font-medium text-gray-900 dark:text-white">
-                  Câu {i + 1}. {question.content}
-                </p>
               </div>
 
               <div className="flex flex-col gap-1.5 pl-6">
