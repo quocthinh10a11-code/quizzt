@@ -37,23 +37,11 @@ export default function QuizCard({
   const router = useRouter();
   const { showToast } = useToast();
   const isOwner = !!user && user.id === ownerId;
+
+  const [publicState, setPublicState] = useState(isPublic);
+  const [toggling, setToggling] = useState(false);
   const [cloning, setCloning] = useState(false);
-  async function handleClone() {
-    if (!user || cloning) return;
-    setCloning(true);
 
-    const { newQuizId, error } = await cloneQuiz(id, user.id);
-
-    setCloning(false);
-
-    if (error || !newQuizId) {
-      showToast(error ?? "Không thể nhân bản bộ đề.", "error");
-      return;
-    }
-
-    showToast("Đã nhân bản bộ đề! Bạn có thể chỉnh sửa ngay.", "success");
-    router.push(`/quizzes/${newQuizId}/edit`);
-  }
   async function handleTogglePublic() {
     if (toggling) return;
 
@@ -72,6 +60,23 @@ export default function QuizCard({
     }
 
     setToggling(false);
+  }
+
+  async function handleClone() {
+    if (!user || cloning) return;
+    setCloning(true);
+
+    const { newQuizId, error } = await cloneQuiz(id, user.id);
+
+    setCloning(false);
+
+    if (error || !newQuizId) {
+      showToast(error ?? "Không thể nhân bản bộ đề.", "error");
+      return;
+    }
+
+    showToast("Đã nhân bản bộ đề! Bạn có thể chỉnh sửa ngay.", "success");
+    router.push(`/quizzes/${newQuizId}/edit`);
   }
 
   const formattedDate = new Date(updatedAt).toLocaleDateString("vi-VN", {
@@ -135,7 +140,8 @@ export default function QuizCard({
             Ôn tập
           </Button>
         </Link>
-        {!isOwner && isPublic && (
+
+        {!isOwner && isPublic && user && (
           <Button
             size="sm"
             variant="outline"
@@ -146,6 +152,7 @@ export default function QuizCard({
             Nhân bản
           </Button>
         )}
+
         {isOwner && (
           <>
             <Link href={`/quizzes/${id}/add-questions`}>
