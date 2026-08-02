@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Play, RotateCcw, Plus, Pencil, Globe, Lock, User, Copy } from "lucide-react";
+import { Play, RotateCcw, Plus, Pencil, Globe, Lock, User, Copy, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { cloneQuiz } from "@/lib/cloneQuiz";
+import { deleteQuiz } from "@/lib/deleteQuiz";
 import { useToast } from "@/components/ui/Toast";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -21,6 +22,7 @@ type QuizCardProps = {
   questions: number;
   ownerId: string | null;
   isPublic: boolean;
+  onDeleted?: (id: number) => void;
 };
 
 export default function QuizCard({
@@ -32,6 +34,7 @@ export default function QuizCard({
   questions,
   ownerId,
   isPublic,
+  onDeleted,
 }: QuizCardProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -41,6 +44,7 @@ export default function QuizCard({
   const [publicState, setPublicState] = useState(isPublic);
   const [toggling, setToggling] = useState(false);
   const [cloning, setCloning] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleTogglePublic() {
     if (toggling) return;
@@ -77,6 +81,29 @@ export default function QuizCard({
 
     showToast("Đã nhân bản bộ đề! Bạn có thể chỉnh sửa ngay.", "success");
     router.push(`/quizzes/${newQuizId}/edit`);
+  }
+
+  async function handleDelete() {
+    if (deleting) return;
+
+    const confirmed = window.confirm(
+      `Xoá bộ đề "${title}" sẽ xoá toàn bộ ${questions} câu hỏi bên trong. Hành động này không thể hoàn tác. Tiếp tục?`
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+
+    const { error } = await deleteQuiz(id);
+
+    setDeleting(false);
+
+    if (error) {
+      showToast(error, "error");
+      return;
+    }
+
+    showToast("Đã xoá bộ đề.", "success");
+    onDeleted?.(id);
   }
 
   const formattedDate = new Date(updatedAt).toLocaleDateString("vi-VN", {
@@ -165,6 +192,16 @@ export default function QuizCard({
                 Sửa
               </Button>
             </Link>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-danger hover:bg-red-50 dark:hover:bg-red-950/30"
+              leftIcon={<Trash2 size={14} />}
+              loading={deleting}
+              onClick={handleDelete}
+            >
+              Xoá
+            </Button>
           </>
         )}
       </div>
