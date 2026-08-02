@@ -232,6 +232,12 @@ export default function EditQuizPage() {
       }
     }
 
+    if (!user) {
+      setMessage("Bạn cần đăng nhập để lưu nhãn.");
+      setSaving(false);
+      return;
+    }
+
     const { error: tagsError } = await syncQuizTags(quizId, user.id, tagNames);
 
     if (tagsError) {
