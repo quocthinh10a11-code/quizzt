@@ -12,7 +12,8 @@ import Textarea from "@/components/ui/Textarea";
 import Skeleton from "@/components/ui/Skeleton";
 import Select from "@/components/ui/Select";
 import SubjectChapterPicker from "@/components/SubjectChapterPicker";
-
+import TagPicker from "@/components/TagPicker";
+import { getQuizTags, syncQuizTags } from "@/lib/quizTags";
 const DIFFICULTY_OPTIONS = [
   { value: "easy", label: "Dễ" },
   { value: "medium", label: "Trung bình" },
@@ -46,6 +47,7 @@ export default function EditQuizPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [chapterId, setChapterId] = useState<number | null>(null);
+  const [tagNames, setTagNames] = useState<string[]>([]);
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -89,6 +91,10 @@ export default function EditQuizPage() {
   setQuestions(loaded);
   setOpenedTempIds(new Set(loaded.map((q) => q.tempId))); // <-- thêm dòng này
 }
+
+      const existingTags = await getQuizTags(quizId);
+      setTagNames(existingTags.map((t) => t.name));
+
       setLoading(false);
     }
 
@@ -226,6 +232,14 @@ export default function EditQuizPage() {
       }
     }
 
+    const { error: tagsError } = await syncQuizTags(quizId, user.id, tagNames);
+
+    if (tagsError) {
+      setMessage("Lỗi khi lưu nhãn: " + tagsError);
+      setSaving(false);
+      return;
+    }
+
     setDeletedIds([]);
 setSaving(false);
 router.push("/");
@@ -258,6 +272,15 @@ router.push("/");
         setSubjectId(subjectId);
         setChapterId(chapterId);
       }}
+    />
+  </div>
+)}
+{user && (
+  <div className="mb-6">
+    <TagPicker
+      userId={user.id}
+      selectedNames={tagNames}
+      onChange={setTagNames}
     />
   </div>
 )}
