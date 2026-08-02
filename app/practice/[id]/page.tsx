@@ -10,6 +10,8 @@ import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
+import { Bookmark, BookmarkCheck } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 type Question = {
   id: number;
   content: string;
@@ -29,7 +31,8 @@ export default function PracticePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [submitted, setSubmitted] = useState(false);
-
+  const { user } = useAuth();
+const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   // ----- Đếm ngược -----
   const [started, setStarted] = useState(false);
   const [minutesInput, setMinutesInput] = useState("15");
@@ -56,19 +59,51 @@ export default function PracticePage() {
       if (questionData) {
         setQuestions(questionData);
         setAnswers(Array(questionData.length).fill(null));
+        if (user) {
+    const { data: bookmarkData } = await supabase
+      .from("bookmarks")
+      .select("question_id")
+      .eq("user_id", user.id)
+      .in("question_id", questionData.map((q) => q.id));
+    setBookmarkedIds(new Set((bookmarkData ?? []).map((b) => b.question_id)));
+  }
+}
       }
 
       setLoading(false);
     }
 
     loadData();
-  }, [quizId]);
+  }, [quizId, user?.id]);
 
   function handleSelect(optionIndex: number) {
     const updated = [...answers];
     updated[currentIndex] = optionIndex;
     setAnswers(updated);
   }
+  async function handleToggleBookmark(questionId: number) {
+  if (!user) return;
+  const isBookmarked = bookmarkedIds.has(questionId);
+
+  setBookmarkedIds((prev) => {
+    const next = new Set(prev);
+    isBookmarked ? next.delete(questionId) : next.add(questionId);
+    return next;
+  });
+
+  const { error } = isBookmarked
+    ? await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("question_id", questionId)
+    : await supabase.from("bookmarks").insert({ user_id: user.id, question_id: questionId });
+
+  if (error) {
+    // lỗi -> hoàn tác lại UI
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      isBookmarked ? next.add(questionId) : next.delete(questionId);
+      return next;
+    });
+  }
+}
 
   function handleNext() {
     if (currentIndex < questions.length - 1) setCurrentIndex(currentIndex + 1);
@@ -230,36 +265,26 @@ export default function PracticePage() {
         <>
           <Card className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-primary font-medium">
-                Câu {currentIndex + 1} / {questions.length}
-              </p>
-              <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
-                {DIFFICULTY_LABEL[question.difficulty]}
-              </Badge>
-            </div>
-            <p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
-
-            <div className="flex flex-col gap-3">
-              {question.options.map((option, index) => {
-                const isSelected = answers[currentIndex] === index;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleSelect(index)}
-                    className={cn(
-                      "text-left px-4 py-3 rounded-lg border transition-all duration-150",
-                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-                      isSelected
-                        ? "bg-primary text-white border-primary"
-                        : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-800 hover:border-primary/50"
-                    )}
-                  >
-                    <span className="font-medium mr-2">{String.fromCharCode(65 + index)}.</span>
-                    {option}
-                  </button>
-                );
-              })}
-            </div>
+  <p className="text-sm text-primary font-medium">
+    Câu {currentIndex + 1} / {questions.length}
+  </p>
+  <div className="flex items-center gap-2">
+    <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
+      {DIFFICULTY_LABEL[question.difficulty]}
+    </Badge>
+    <button
+      onClick={() => handleToggleBookmark(question.id)}
+      aria-label="Đánh dấu câu hỏi"
+      className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+    >
+      {bookmarkedIds.has(question.id) ? (
+        <BookmarkCheck size={18} className="text-primary" />
+      ) : (
+        <Bookmark size={18} />
+      )}
+    </button>
+  </div>
+</div>
 
             <div className="flex justify-between mt-8">
               <Button

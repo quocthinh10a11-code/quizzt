@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { Sun, Moon, ChevronDown, LogOut, Settings, Shield, Menu, X, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { Bookmark } from "lucide-react";
 export default function Navbar() {
   const { user, profile, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -39,8 +39,26 @@ export default function Navbar() {
               href="/quizzes"
               className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
             >
+          {user && (
+  <Link
+    href="/practice/bookmarks"
+    aria-label="Câu đã đánh dấu"
+    className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+  >
+    <Bookmark size={18} />
+  </Link>
+)}
               <Layers size={15} />
               Bộ đề của bạn
+          {user && (
+  <Link
+    href="/practice/bookmarks"
+    onClick={() => setMobileOpen(false)}
+    className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+  >
+    <Bookmark size={16} /> Câu đã đánh dấu
+  </Link>
+)}
             </Link>
           )}
         </div>
