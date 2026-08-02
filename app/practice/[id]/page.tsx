@@ -68,7 +68,6 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
     setBookmarkedIds(new Set((bookmarkData ?? []).map((b) => b.question_id)));
   }
 }
-      }
 
       setLoading(false);
     }
