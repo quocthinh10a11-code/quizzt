@@ -22,6 +22,7 @@ type QuizCardProps = {
   questions: number;
   ownerId: string | null;
   isPublic: boolean;
+  tags?: { id: number; name: string }[];
   onDeleted?: (id: number) => void;
 };
 
@@ -34,6 +35,7 @@ export default function QuizCard({
   questions,
   ownerId,
   isPublic,
+  tags = [],
   onDeleted,
 }: QuizCardProps) {
   const { user } = useAuth();
@@ -134,10 +136,14 @@ export default function QuizCard({
         )}
       </div>
 
-      {description && (
-        <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-          {description}
-        </p>
+      {tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <Badge key={tag.id} variant="default">
+              {tag.name}
+            </Badge>
+          ))}
+        </div>
       )}
 
       <div className="mt-2 flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
