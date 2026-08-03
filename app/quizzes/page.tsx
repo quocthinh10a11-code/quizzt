@@ -8,7 +8,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
-import { getTagsForQuizzes, type Tag } from "@/lib/quizTags";
+import { getTagsForQuizzes, getUserTags, type Tag } from "@/lib/quizTags";
 import { useAuth } from "@/context/AuthContext";
 import Select from "@/components/ui/Select";
 
@@ -34,6 +34,8 @@ export default function MyQuizzesPage() {
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterChapter, setFilterChapter] = useState<string>("all");
   const [tagsByQuiz, setTagsByQuiz] = useState<Record<number, Tag[]>>({});
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   useEffect(() => {
   if (!user) return;
   async function loadFilters() {
@@ -49,6 +51,9 @@ export default function MyQuizzesPage() {
       .select("id, name, subject_id")
       .in("subject_id", (subjectData ?? []).map((s) => s.id));
     setChapters(chapterData ?? []);
+
+    const userTags = await getUserTags(user!.id);
+    setAllTags(userTags);
   }
   loadFilters();
 }, [user]);
@@ -80,6 +85,12 @@ export default function MyQuizzesPage() {
     setQuizzes((prev) => prev.filter((q) => q.id !== id));
   }
 
+  function toggleTagFilter(tagId: number) {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  }
+
   const chaptersOfSelectedSubject = useMemo(() => {
   if (filterSubject === "all") return [];
   return chapters.filter((c) => c.subject_id === Number(filterSubject));
@@ -100,8 +111,15 @@ const filteredQuizzes = useMemo(() => {
     result = result.filter((quiz) => quiz.chapter_id !== null && chapterIds.has(quiz.chapter_id));
   }
 
+  if (selectedTagIds.length > 0) {
+    result = result.filter((quiz) => {
+      const quizTagIds = (tagsByQuiz[quiz.id] ?? []).map((t) => t.id);
+      return selectedTagIds.some((id) => quizTagIds.includes(id));
+    });
+  }
+
   return result;
-}, [quizzes, search, filterSubject, filterChapter, chaptersOfSelectedSubject]);
+}, [quizzes, search, filterSubject, filterChapter, chaptersOfSelectedSubject, selectedTagIds, tagsByQuiz]);
   return (
     <RequireAuth>
       <div className="p-8 max-w-6xl mx-auto">
@@ -124,7 +142,7 @@ const filteredQuizzes = useMemo(() => {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="mb-6 flex flex-col sm:flex-row gap-3 max-w-2xl">
+        <div className="mb-4 flex flex-col sm:flex-row gap-3 max-w-2xl">
   <div className="w-full sm:w-56">
     <Select
       options={[{ value: "all", label: "Tất cả môn học" }, ...subjects.map((s) => ({ value: String(s.id), label: s.name }))]}
@@ -144,6 +162,38 @@ const filteredQuizzes = useMemo(() => {
     />
   </div>
 </div>
+
+{allTags.length > 0 && (
+  <div className="mb-6 flex flex-wrap items-center gap-2">
+    <span className="text-sm text-gray-500 dark:text-gray-400">Nhãn:</span>
+    {allTags.map((tag) => {
+      const active = selectedTagIds.includes(tag.id);
+      return (
+        <button
+          key={tag.id}
+          type="button"
+          onClick={() => toggleTagFilter(tag.id)}
+          className={
+            active
+              ? "text-xs px-2.5 py-1 rounded-full bg-primary text-white transition-colors"
+              : "text-xs px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-primary hover:text-primary transition-colors"
+          }
+        >
+          {tag.name}
+        </button>
+      );
+    })}
+    {selectedTagIds.length > 0 && (
+      <button
+        type="button"
+        onClick={() => setSelectedTagIds([])}
+        className="text-xs text-gray-400 hover:text-danger underline ml-1"
+      >
+        Bỏ lọc
+      </button>
+    )}
+  </div>
+)}
 
         {error && (
           <p className="text-danger text-sm mb-4">Lỗi tải dữ liệu: {error}</p>
