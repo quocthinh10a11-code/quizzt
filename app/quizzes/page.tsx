@@ -8,6 +8,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
+import { getTagsForQuizzes, type Tag } from "@/lib/quizTags";
 import { useAuth } from "@/context/AuthContext";
 import Select from "@/components/ui/Select";
 
@@ -32,6 +33,7 @@ export default function MyQuizzesPage() {
   const [chapters, setChapters] = useState<{ id: number; name: string; subject_id: number }[]>([]);
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterChapter, setFilterChapter] = useState<string>("all");
+  const [tagsByQuiz, setTagsByQuiz] = useState<Record<number, Tag[]>>({});
   useEffect(() => {
   if (!user) return;
   async function loadFilters() {
@@ -65,6 +67,8 @@ export default function MyQuizzesPage() {
         setError(error.message);
       } else {
         setQuizzes(data ?? []);
+        const quizIds = (data ?? []).map((q) => q.id);
+        getTagsForQuizzes(quizIds).then(setTagsByQuiz);
       }
       setLoading(false);
     }
@@ -178,6 +182,7 @@ const filteredQuizzes = useMemo(() => {
                 questions={quiz.questions[0]?.count ?? 0}
                 ownerId={quiz.user_id}
                 isPublic={quiz.is_public}
+                tags={tagsByQuiz[quiz.id] ?? []}
                 onDeleted={handleQuizDeleted}
               />
             ))}

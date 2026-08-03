@@ -6,6 +6,7 @@ import QuizCard from "@/components/QuizCard";
 import Input from "@/components/ui/Input";
 import Skeleton from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
+import { getTagsForQuizzes, type Tag } from "@/lib/quizTags";
 import { useAuth } from "@/context/AuthContext";
 
 type QuizRow = {
@@ -22,6 +23,7 @@ export default function HomePage() {
   const { user, loading: authLoading } = useAuth();
   const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
+  const [tagsByQuiz, setTagsByQuiz] = useState<Record<number, Tag[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -43,6 +45,9 @@ export default function HomePage() {
       }
 
       setQuizzes(data ?? []);
+
+      const quizIds = (data ?? []).map((q) => q.id);
+      getTagsForQuizzes(quizIds).then(setTagsByQuiz);
 
       const ownerIds = Array.from(
         new Set((data ?? []).map((q) => q.user_id).filter((id): id is string => !!id))
@@ -123,6 +128,7 @@ export default function HomePage() {
                 questions={quiz.questions[0]?.count ?? 0}
                 ownerId={quiz.user_id}
                 isPublic={quiz.is_public}
+                tags={tagsByQuiz[quiz.id] ?? []}
                 onDeleted={handleQuizDeleted}
               />
             ))}
