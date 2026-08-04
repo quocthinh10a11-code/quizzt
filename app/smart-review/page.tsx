@@ -2,27 +2,29 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2, Bookmark, BookmarkCheck, LogOut, ArrowLeft, Layers } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import {
+  Clock, ChevronLeft, ChevronRight, Send, CheckCircle2,
+  LogOut, ArrowLeft, Layers, Brain,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
-import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSession";
-import { addToReviewQueue } from "@/lib/reviewQueue";
-type BookmarkedQuestion = PracticeQuestion & {
-  quiz_id: number | null;
-  quiz_title: string;
-};
+import {
+  getDueReviewQuestions,
+  updateReviewProgress,
+  removeFromReviewQueue,
+  type DueReviewQuestion,
+} from "@/lib/reviewQueue";
 
 type QuizGroup = {
   key: string;
   quizId: number | null;
   quizTitle: string;
-  questions: BookmarkedQuestion[];
+  questions: DueReviewQuestion[];
 };
 
 const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
@@ -32,99 +34,69 @@ const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
   hard: "danger",
 };
 
-export default function BookmarksPracticePage() {
+export default function SmartReviewPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
-  const [allQuestions, setAllQuestions] = useState<BookmarkedQuestion[]>([]);
+  const [allDue, setAllDue] = useState<DueReviewQuestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notes, setNotes] = useState<Record<number, string>>({});
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
-
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
+  const [showManage, setShowManage] = useState(false);
 
   useEffect(() => {
     if (authLoading || !user) return;
-
-    async function loadBookmarked() {
+    async function load() {
       setLoading(true);
-      const { data } = await supabase
-        .from("bookmarks")
-        .select("question_id, questions(id, content, options, correct_index, difficulty, quiz_id, quizzes(title))")
-        .eq("user_id", user!.id);
-
-      const list: BookmarkedQuestion[] = (data ?? [])
-        .map((row: any) => {
-          const q = row.questions;
-          if (!q) return null;
-          return {
-            id: q.id,
-            content: q.content,
-            options: q.options,
-            correct_index: q.correct_index,
-            difficulty: q.difficulty,
-            quiz_id: q.quiz_id,
-            quiz_title: q.quizzes?.title ?? "Bộ đề không xác định",
-          };
-        })
-        .filter(Boolean) as BookmarkedQuestion[];
-
-      setAllQuestions(list);
-      setBookmarkedIds(new Set(list.map((q) => q.id)));
-
-      const { data: noteData } = await supabase
-        .from("notes")
-        .select("question_id, content")
-        .eq("user_id", user!.id)
-        .in("question_id", list.map((q) => q.id));
-      const notesMap: Record<number, string> = {};
-      (noteData ?? []).forEach((n) => {
-        notesMap[n.question_id] = n.content;
-      });
-      setNotes(notesMap);
-
+      const data = await getDueReviewQuestions(user!.id);
+      setAllDue(data);
       setLoading(false);
     }
-
-    loadBookmarked();
+    load();
   }, [authLoading, user]);
 
   const groups = useMemo<QuizGroup[]>(() => {
     const map = new Map<string, QuizGroup>();
-    for (const q of allQuestions) {
-      const key = q.quiz_id !== null ? `quiz:${q.quiz_id}` : `unknown:${q.quiz_title}`;
+    for (const q of allDue) {
+      const key = q.quizId !== null ? `quiz:${q.quizId}` : `unknown:${q.quizTitle}`;
       if (!map.has(key)) {
-        map.set(key, { key, quizId: q.quiz_id, quizTitle: q.quiz_title, questions: [] });
+        map.set(key, { key, quizId: q.quizId, quizTitle: q.quizTitle, questions: [] });
       }
       map.get(key)!.questions.push(q);
     }
     return Array.from(map.values()).sort((a, b) => a.quizTitle.localeCompare(b.quizTitle));
-  }, [allQuestions]);
+  }, [allDue]);
 
-  const activeQuestions = useMemo<BookmarkedQuestion[]>(() => {
+  const activeQuestions = useMemo<DueReviewQuestion[]>(() => {
     if (selectedGroupKey === null) return [];
-    if (selectedGroupKey === "all") return allQuestions;
+    if (selectedGroupKey === "all") return allDue;
     return groups.find((g) => g.key === selectedGroupKey)?.questions ?? [];
-  }, [selectedGroupKey, allQuestions, groups]);
+  }, [selectedGroupKey, allDue, groups]);
 
   const activeTitle =
     selectedGroupKey === "all"
-      ? "Tất cả câu đã đánh dấu"
-      : groups.find((g) => g.key === selectedGroupKey)?.quizTitle ?? "Câu đã đánh dấu";
+      ? "Ôn tập hôm nay - Tất cả"
+      : groups.find((g) => g.key === selectedGroupKey)?.quizTitle ?? "Ôn tập hôm nay";
 
-  // Nếu chọn 1 bộ đề cụ thể thì gắn quiz_id đó, nếu chọn "Tất cả" (nhiều bộ đề trộn lẫn) thì để null
   const activeQuizId =
     selectedGroupKey && selectedGroupKey !== "all"
       ? groups.find((g) => g.key === selectedGroupKey)?.quizId ?? null
       : null;
 
+  const sessionQuestions: PracticeQuestion[] = activeQuestions.map((q) => ({
+    id: q.questionId,
+    content: q.content,
+    options: q.options,
+    correct_index: q.correctIndex,
+    difficulty: q.difficulty,
+  }));
+
   const session = usePracticeSession({
-    questions: activeQuestions,
+    questions: sessionQuestions,
     userId: user?.id,
     quizId: activeQuizId,
     quizTitle: activeTitle,
-    attemptType: "bookmark",
-    storageKey: "quizResult:bookmarks",
+    attemptType: "review_queue",
+    storageKey: "quizResult:smart-review",
   });
 
   function handleChooseGroup(key: string) {
@@ -137,35 +109,6 @@ export default function BookmarksPracticePage() {
     setSelectedGroupKey(null);
   }
 
-  async function handleToggleBookmark(questionId: number) {
-    if (!user) return;
-    const isBookmarked = bookmarkedIds.has(questionId);
-
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      isBookmarked ? next.delete(questionId) : next.add(questionId);
-      return next;
-    });
-
-    const { error } = isBookmarked
-      ? await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("question_id", questionId)
-      : await supabase.from("bookmarks").insert({ user_id: user.id, question_id: questionId });
-
-    if (error) {
-      setBookmarkedIds((prev) => {
-        const next = new Set(prev);
-        isBookmarked ? next.add(questionId) : next.delete(questionId);
-        return next;
-      });
-      return;
-    }
-
-    // Bookmark mới (không phải gỡ) -> tự động đưa vào Review Queue
-    if (!isBookmarked) {
-      addToReviewQueue(user.id, questionId, "bookmark");
-    }
-  }
-
   function handleExit() {
     const confirmed = window.confirm("Kết quả của bạn sẽ không được tính. Xác nhận thoát?");
     if (confirmed) {
@@ -174,15 +117,32 @@ export default function BookmarksPracticePage() {
     }
   }
 
-  if (authLoading || loading) {
-    return <div className="p-8 text-center text-gray-500">Đang tải câu hỏi đã đánh dấu...</div>;
+  // Nộp bài xong -> cập nhật chu kỳ ôn tập cho từng câu theo đúng/sai
+  async function handleSubmitAndUpdateProgress() {
+    await session.handleSubmit();
+    await Promise.all(
+      activeQuestions.map((q, i) => updateReviewProgress(q.reviewId, session.answers[i] === q.correctIndex))
+    );
   }
 
-  if (allQuestions.length === 0) {
+  async function handleRemove(questionId: number) {
+    if (!user) return;
+    const prevList = allDue;
+    setAllDue((prev) => prev.filter((q) => q.questionId !== questionId));
+    const { error } = await removeFromReviewQueue(user.id, questionId);
+    if (error) setAllDue(prevList);
+  }
+
+  if (authLoading || loading) {
+    return <div className="p-8 text-center text-gray-500">Đang tải câu cần ôn hôm nay...</div>;
+  }
+
+  if (allDue.length === 0) {
     return (
       <div className="p-8 text-center animate-fade-up">
+        <Brain size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-700" />
         <p className="text-gray-500 dark:text-gray-400 mb-4">
-          Bạn chưa đánh dấu câu hỏi nào. Vào phần Làm bài của 1 bộ đề, bấm biểu tượng bookmark trên mỗi câu để đánh dấu.
+          Không có câu nào cần ôn hôm nay. Hãy bookmark hoặc đánh dấu thêm câu ở phần Ôn tập/Xem lại đáp án.
         </p>
         <Button onClick={() => router.push("/")} variant="primary">
           Về trang chủ
@@ -194,10 +154,8 @@ export default function BookmarksPracticePage() {
   if (selectedGroupKey === null) {
     return (
       <div className="p-8 max-w-2xl mx-auto animate-fade-up">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Câu đã đánh dấu</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
-          Chọn bộ đề để ôn lại các câu đã đánh dấu trong bộ đề đó
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Ôn tập hôm nay</h1>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">Chọn bộ đề để ôn các câu đã đến hạn</p>
 
         <div className="flex flex-col gap-3">
           <Card
@@ -207,9 +165,9 @@ export default function BookmarksPracticePage() {
           >
             <div className="flex items-center gap-3">
               <Layers size={18} className="text-primary" />
-              <p className="font-medium text-gray-900 dark:text-white">Tất cả câu đã đánh dấu</p>
+              <p className="font-medium text-gray-900 dark:text-white">Tất cả câu cần ôn</p>
             </div>
-            <Badge variant="primary">{allQuestions.length} câu</Badge>
+            <Badge variant="primary">{allDue.length} câu</Badge>
           </Card>
 
           {groups.map((group) => (
@@ -224,6 +182,39 @@ export default function BookmarksPracticePage() {
             </Card>
           ))}
         </div>
+
+        <div className="mt-8">
+          <button
+            onClick={() => setShowManage((v) => !v)}
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors underline"
+          >
+            {showManage ? "Ẩn danh sách chi tiết" : "Quản lý danh sách ôn tập"}
+          </button>
+
+          {showManage && (
+            <div className="mt-3 flex flex-col gap-2 animate-fade-up">
+              {allDue.map((q) => (
+                <div
+                  key={q.questionId}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="text-gray-900 dark:text-white truncate">{q.content}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      {q.quizTitle} · chu kỳ {q.intervalDays} ngày
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRemove(q.questionId)}
+                    className="shrink-0 text-xs text-gray-400 hover:text-danger px-2 py-1"
+                  >
+                    Gỡ
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -235,7 +226,7 @@ export default function BookmarksPracticePage() {
           onClick={handleBackToSelection}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors mb-4"
         >
-          <ArrowLeft size={15} /> Chọn bộ đề khác
+          <ArrowLeft size={15} /> Chọn nhóm khác
         </button>
 
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{activeTitle}</h1>
@@ -265,7 +256,7 @@ export default function BookmarksPracticePage() {
         </Card>
 
         <Button onClick={session.handleStart} variant="primary" className="mt-6 w-full" size="lg">
-          Bắt đầu làm bài
+          Bắt đầu ôn tập
         </Button>
       </div>
     );
@@ -309,32 +300,9 @@ export default function BookmarksPracticePage() {
               <p className="text-sm text-primary font-medium">
                 Câu {session.currentIndex + 1} / {activeQuestions.length}
               </p>
-              <div className="flex items-center gap-2">
-                <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
-                  {DIFFICULTY_LABEL[question.difficulty]}
-                </Badge>
-                {user && (
-                  <NoteEditor
-                    userId={user.id}
-                    questionId={question.id}
-                    initialContent={notes[question.id] ?? ""}
-                    onSaved={(content) =>
-                      setNotes((prev) => ({ ...prev, [question.id]: content }))
-                    }
-                  />
-                )}
-                <button
-                  onClick={() => handleToggleBookmark(question.id)}
-                  aria-label="Đánh dấu câu hỏi"
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-                >
-                  {bookmarkedIds.has(question.id) ? (
-                    <BookmarkCheck size={18} className="text-primary" />
-                  ) : (
-                    <Bookmark size={18} />
-                  )}
-                </button>
-              </div>
+              <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
+                {DIFFICULTY_LABEL[question.difficulty]}
+              </Badge>
             </div>
             <p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
 
@@ -361,11 +329,16 @@ export default function BookmarksPracticePage() {
             </div>
 
             <div className="flex justify-between mt-8">
-              <Button onClick={session.handlePrevious} disabled={session.currentIndex === 0} variant="secondary" leftIcon={<ChevronLeft size={16} />}>
+              <Button
+                onClick={session.handlePrevious}
+                disabled={session.currentIndex === 0}
+                variant="secondary"
+                leftIcon={<ChevronLeft size={16} />}
+              >
                 Trước
               </Button>
               {session.currentIndex === activeQuestions.length - 1 ? (
-                <Button onClick={session.handleSubmit} variant="danger" rightIcon={<Send size={16} />}>
+                <Button onClick={handleSubmitAndUpdateProgress} variant="danger" rightIcon={<Send size={16} />}>
                   Nộp bài
                 </Button>
               ) : (
@@ -406,16 +379,16 @@ export default function BookmarksPracticePage() {
       ) : (
         <Card className="p-8 text-center">
           <CheckCircle2 size={40} className="mx-auto text-success mb-3" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kết quả</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Đã cập nhật chu kỳ ôn tập</h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
             Đúng{" "}
             <span className="text-primary font-semibold">
-              {activeQuestions.filter((q, i) => session.answers[i] === q.correct_index).length}
+              {activeQuestions.filter((q, i) => session.answers[i] === q.correctIndex).length}
             </span>
             /{activeQuestions.length} câu
           </p>
-          <Button onClick={() => router.push("/review/bookmarks")} variant="primary" size="lg">
-            Xem lại đáp án
+          <Button onClick={() => router.push("/smart-review")} variant="primary" size="lg">
+            Về danh sách ôn tập
           </Button>
         </Card>
       )}

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X } from "lucide-react";
+import { Check, X, ListPlus, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
-
+import { addToReviewQueue, getQuestionIdsInQueue } from "@/lib/reviewQueue";
 type StoredQuestion = {
   id: number;
   content: string;
@@ -28,7 +28,7 @@ export default function BookmarksReviewPage() {
   const [result, setResult] = useState<StoredResult | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [notes, setNotes] = useState<Record<number, string>>({});
-
+  const [reviewQueueIds, setReviewQueueIds] = useState<Set<number>>(new Set());
   useEffect(() => {
     const raw = localStorage.getItem("quizResult:bookmarks");
     if (raw) {
@@ -36,11 +36,13 @@ export default function BookmarksReviewPage() {
       setResult(parsed);
 
       if (user) {
+        const questionIds = parsed.questions.map((q) => q.id);
+
         supabase
           .from("notes")
           .select("question_id, content")
           .eq("user_id", user.id)
-          .in("question_id", parsed.questions.map((q) => q.id))
+          .in("question_id", questionIds)
           .then(({ data }) => {
             const notesMap: Record<number, string> = {};
             (data ?? []).forEach((n) => {
@@ -48,10 +50,25 @@ export default function BookmarksReviewPage() {
             });
             setNotes(notesMap);
           });
+
+        getQuestionIdsInQueue(user.id, questionIds).then(setReviewQueueIds);
       }
     }
     setLoaded(true);
   }, [user?.id]);
+  async function handleAddToReview(questionId: number, source: "wrong_answer" | "note") {
+    if (!user || reviewQueueIds.has(questionId)) return;
+
+    setReviewQueueIds((prev) => new Set(prev).add(questionId));
+    const { error } = await addToReviewQueue(user.id, questionId, source);
+    if (error) {
+      setReviewQueueIds((prev) => {
+        const next = new Set(prev);
+        next.delete(questionId);
+        return next;
+      });
+    }
+  }
 
   if (!loaded) return null;
 
@@ -95,16 +112,36 @@ export default function BookmarksReviewPage() {
                     Câu {i + 1}. {question.content}
                   </p>
                 </div>
-                {user && (
-                  <NoteEditor
-                    userId={user.id}
-                    questionId={question.id}
-                    initialContent={notes[question.id] ?? ""}
-                    onSaved={(content) =>
-                      setNotes((prev) => ({ ...prev, [question.id]: content }))
-                    }
-                  />
-                )}
+                <div className="flex items-center gap-1 shrink-0">
+                  {user && !isCorrect && (
+                    reviewQueueIds.has(question.id) ? (
+                      <span title="Đã có trong danh sách ôn tập" className="p-1.5 text-success">
+                        <CheckCircle size={18} />
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleAddToReview(question.id, "wrong_answer")}
+                        title="Thêm vào ôn tập"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                      >
+                        <ListPlus size={18} />
+                      </button>
+                    )
+                  )}
+                  {user && (
+                    <NoteEditor
+                      userId={user.id}
+                      questionId={question.id}
+                      initialContent={notes[question.id] ?? ""}
+                      onSaved={(content) => {
+                        setNotes((prev) => ({ ...prev, [question.id]: content }));
+                        if (content.trim()) {
+                          handleAddToReview(question.id, "note");
+                        }
+                      }}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5 pl-6">

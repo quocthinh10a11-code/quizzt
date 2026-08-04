@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { Sun, Moon, ChevronDown, LogOut, Settings, Shield, Menu, X, Layers, Bookmark, BookOpen, History, BarChart3 } from "lucide-react";
+import { getDueReviewCount } from "@/lib/reviewQueue";
+import {
+  Sun, Moon, ChevronDown, LogOut, Settings, Shield, Menu, X,
+  Layers, Bookmark, BookOpen, History, BarChart3, Brain,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Navbar() {
@@ -12,18 +16,32 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [dueCount, setDueCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const reviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
+      if (reviewRef.current && !reviewRef.current.contains(e.target as Node)) {
+        setReviewOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setDueCount(0);
+      return;
+    }
+    getDueReviewCount(user.id).then(setDueCount);
+  }, [user?.id]);
 
   const initial = (profile?.username ?? user?.email ?? "?").charAt(0).toUpperCase();
 
@@ -74,6 +92,62 @@ export default function Navbar() {
 
         {/* Desktop */}
         <div className="hidden sm:flex items-center gap-2">
+          {user && (
+            <div className="relative" ref={reviewRef}>
+              <button
+                onClick={() => setReviewOpen((v) => !v)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                  dueCount > 0
+                    ? "text-primary bg-primary/10 hover:bg-primary/15"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                )}
+              >
+                <Brain size={16} />
+                Ôn tập
+                {dueCount > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-semibold">
+                    {dueCount}
+                  </span>
+                )}
+              </button>
+
+              {reviewOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg py-1 animate-fade-up">
+                  <Link
+                    href="/smart-review"
+                    onClick={() => setReviewOpen(false)}
+                    className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Brain size={14} /> Ôn tập hôm nay
+                    </span>
+                    {dueCount > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-semibold">
+                        {dueCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    href="/practice/bookmarks"
+                    onClick={() => setReviewOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <Bookmark size={14} /> Câu đã đánh dấu
+                  </Link>
+                  <Link
+                    href="/stats"
+                    onClick={() => setReviewOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <BarChart3 size={14} /> Bộ đề cần ôn nhiều nhất
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             onClick={toggleTheme}
             aria-label="Đổi giao diện sáng/tối"
@@ -81,16 +155,6 @@ export default function Navbar() {
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-
-          {user && (
-            <Link
-              href="/practice/bookmarks"
-              aria-label="Câu đã đánh dấu"
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-            >
-              <Bookmark size={18} />
-            </Link>
-          )}
 
           {user && (
             <Link
@@ -164,10 +228,27 @@ export default function Navbar() {
       <div
         className={cn(
           "sm:hidden overflow-hidden transition-all duration-200 border-t border-gray-200 dark:border-gray-800",
-          mobileOpen ? "max-h-[28rem] opacity-100" : "max-h-0 opacity-0 border-t-0"
+          mobileOpen ? "max-h-[32rem] opacity-100" : "max-h-0 opacity-0 border-t-0"
         )}
       >
         <div className="px-4 py-3 flex flex-col gap-1">
+          {user && (
+            <Link
+              href="/smart-review"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-between px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <span className="flex items-center gap-2">
+                <Brain size={16} /> Ôn tập hôm nay
+              </span>
+              {dueCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-semibold">
+                  {dueCount}
+                </span>
+              )}
+            </Link>
+          )}
+
           {user && (
             <Link
               href="/quizzes"

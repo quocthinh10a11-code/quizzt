@@ -12,7 +12,7 @@ import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSession";
-
+import { addToReviewQueue } from "@/lib/reviewQueue";
 const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
 const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
   easy: "success",
@@ -109,6 +109,12 @@ export default function PracticePage() {
         isBookmarked ? next.add(questionId) : next.delete(questionId);
         return next;
       });
+      return;
+    }
+
+    // Bookmark mới (không phải gỡ) -> tự động đưa vào Review Queue
+    if (!isBookmarked) {
+      addToReviewQueue(user.id, questionId, "bookmark");
     }
   }
 
