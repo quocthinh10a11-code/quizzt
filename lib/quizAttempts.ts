@@ -11,10 +11,11 @@ export type AttemptAnswerInput = {
 
 export async function saveQuizAttempt(params: {
   userId: string;
-  quizId: number;
+  quizId: number | null;
   quizTitle: string;
   timeTakenSeconds: number | null;
   answers: AttemptAnswerInput[];
+  attemptType?: AttemptType;
 }): Promise<{ attemptId: number | null; error: string | null }> {
   const correctCount = params.answers.filter((a) => a.is_correct).length;
 
@@ -27,6 +28,7 @@ export async function saveQuizAttempt(params: {
       total_questions: params.answers.length,
       correct_count: correctCount,
       time_taken_seconds: params.timeTakenSeconds,
+      attempt_type: params.attemptType ?? "quiz",
     })
     .select("id")
     .single();
@@ -53,6 +55,8 @@ export async function saveQuizAttempt(params: {
 
   return { attemptId: attempt.id, error: null };
 }
+export type AttemptType = "quiz" | "bookmark" | "weak_topics" | "ai_generated" | "review_queue";
+
 export type AttemptSummary = {
   id: number;
   quiz_id: number | null;
@@ -60,15 +64,25 @@ export type AttemptSummary = {
   total_questions: number;
   correct_count: number;
   time_taken_seconds: number | null;
+  attempt_type: AttemptType;
   created_at: string;
 };
 
-export async function getUserAttempts(userId: string): Promise<AttemptSummary[]> {
-  const { data, error } = await supabase
+export async function getUserAttempts(
+  userId: string,
+  attemptTypes?: AttemptType[]
+): Promise<AttemptSummary[]> {
+  let query = supabase
     .from("quiz_attempts")
-    .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, created_at")
+    .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, attempt_type, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+
+  if (attemptTypes && attemptTypes.length > 0) {
+    query = query.in("attempt_type", attemptTypes);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) return [];
   return data;
@@ -88,7 +102,7 @@ export async function getAttemptDetail(
 ): Promise<{ summary: AttemptSummary | null; answers: AttemptDetailAnswer[] }> {
   const { data: summary } = await supabase
     .from("quiz_attempts")
-    .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, created_at")
+    .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, attempt_type, created_at")
     .eq("id", attemptId)
     .single();
 
