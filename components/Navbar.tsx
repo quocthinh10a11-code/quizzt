@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { Sun, Moon, ChevronDown, LogOut, Settings, Shield, Menu, X, Layers, Bookmark, BookOpen, History } from "lucide-react";
+import { Sun, Moon, ChevronDown, LogOut, Settings, Shield, Menu, X, Layers, Bookmark, BookOpen, History, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Navbar() {
@@ -117,6 +117,13 @@ export default function Navbar() {
                   >
                     <History size={15} /> Lịch sử làm bài
                   </Link>
+                  <Link
+                    href="/stats"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <BarChart3 size={15} /> Thống kê học tập
+                  </Link>
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
@@ -212,6 +219,13 @@ export default function Navbar() {
                 className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <History size={16} /> Lịch sử làm bài
+              </Link>
+              <Link
+                href="/stats"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <BarChart3 size={16} /> Thống kê học tập
               </Link>
               <Link
                 href="/setting"
