@@ -21,6 +21,8 @@ type Params = {
   storageKey: string;
 };
 
+const EXIT_WARNING_MESSAGE = "Kết quả của bạn sẽ không được tính. Xác nhận rời khỏi bài làm?";
+
 export function usePracticeSession({ questions, userId, quizId, quizTitle, attemptType, storageKey }: Params) {
   const { showToast } = useToast();
 
@@ -142,6 +144,55 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
+
+  // Chặn mọi hình thức rời khỏi bài làm khi đang trong lúc thi (chưa nộp bài)
+  useEffect(() => {
+    const isActive = started && !submitted;
+    if (!isActive) return;
+
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+
+    function handleDocumentClick(e: MouseEvent) {
+      const anchor = (e.target as HTMLElement)?.closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      if (anchor.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+      const confirmed = window.confirm(EXIT_WARNING_MESSAGE);
+      if (!confirmed) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+
+    // Chặn nút Back/Forward của trình duyệt: chèn thêm 1 mốc lịch sử,
+    // để lần bấm Back đầu tiên chỉ trigger cảnh báo thay vì rời trang ngay
+    window.history.pushState(null, "", window.location.href);
+
+    function handlePopState() {
+      const confirmed = window.confirm(EXIT_WARNING_MESSAGE);
+      if (confirmed) {
+        window.history.back();
+      } else {
+        window.history.pushState(null, "", window.location.href);
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleDocumentClick, true);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleDocumentClick, true);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [started, submitted]);
 
   function formatTime(seconds: number) {
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
