@@ -53,3 +53,50 @@ export async function saveQuizAttempt(params: {
 
   return { attemptId: attempt.id, error: null };
 }
+export type AttemptSummary = {
+  id: number;
+  quiz_id: number | null;
+  quiz_title: string;
+  total_questions: number;
+  correct_count: number;
+  time_taken_seconds: number | null;
+  created_at: string;
+};
+
+export async function getUserAttempts(userId: string): Promise<AttemptSummary[]> {
+  const { data, error } = await supabase
+    .from("quiz_attempts")
+    .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data;
+}
+
+export type AttemptDetailAnswer = {
+  id: number;
+  question_content: string;
+  difficulty: string;
+  selected_index: number | null;
+  correct_index: number;
+  is_correct: boolean;
+};
+
+export async function getAttemptDetail(
+  attemptId: number
+): Promise<{ summary: AttemptSummary | null; answers: AttemptDetailAnswer[] }> {
+  const { data: summary } = await supabase
+    .from("quiz_attempts")
+    .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, created_at")
+    .eq("id", attemptId)
+    .single();
+
+  const { data: answers } = await supabase
+    .from("quiz_attempt_answers")
+    .select("id, question_content, difficulty, selected_index, correct_index, is_correct")
+    .eq("attempt_id", attemptId)
+    .order("id");
+
+  return { summary: summary ?? null, answers: answers ?? [] };
+}
