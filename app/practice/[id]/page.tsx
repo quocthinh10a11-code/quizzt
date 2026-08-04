@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2, LogOut, Bookmark, BookmarkCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -11,16 +11,7 @@ import Badge from "@/components/ui/Badge";
 import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { saveQuizAttempt } from "@/lib/quizAttempts";
-import { useToast } from "@/components/ui/Toast";
-
-type Question = {
-  id: number;
-  content: string;
-  options: string[];
-  correct_index: number;
-  difficulty: "easy" | "medium" | "hard";
-};
+import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSession";
 
 const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
 const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
@@ -34,24 +25,21 @@ export default function PracticePage() {
   const quizId = Number(params.id);
   const router = useRouter();
   const { user } = useAuth();
-  const { showToast } = useToast();
 
   const [quizTitle, setQuizTitle] = useState("");
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>([]);
-  const [submitted, setSubmitted] = useState(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   const [notes, setNotes] = useState<Record<number, string>>({});
 
-  const [started, setStarted] = useState(false);
-  const [minutesInput, setMinutesInput] = useState("15");
-  const [noLimit, setNoLimit] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef<number | null>(null);
+  const session = usePracticeSession({
+    questions,
+    userId: user?.id,
+    quizId,
+    quizTitle,
+    attemptType: "quiz",
+    storageKey: `quizResult:${quizId}`,
+  });
 
   useEffect(() => {
     async function loadData() {
@@ -71,7 +59,6 @@ export default function PracticePage() {
       if (quiz) setQuizTitle(quiz.title);
       if (questionData) {
         setQuestions(questionData);
-        setAnswers(Array(questionData.length).fill(null));
 
         if (user) {
           const ids = questionData.map((q) => q.id);
@@ -102,12 +89,6 @@ export default function PracticePage() {
     loadData();
   }, [quizId, user?.id]);
 
-  function handleSelect(optionIndex: number) {
-    const updated = [...answers];
-    updated[currentIndex] = optionIndex;
-    setAnswers(updated);
-  }
-
   async function handleToggleBookmark(questionId: number) {
     if (!user) return;
     const isBookmarked = bookmarkedIds.has(questionId);
@@ -131,100 +112,12 @@ export default function PracticePage() {
     }
   }
 
-  function handleNext() {
-    if (currentIndex < questions.length - 1) setCurrentIndex(currentIndex + 1);
-  }
-
-  function handlePrevious() {
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-  }
-
-  async function handleSubmit() {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    localStorage.setItem(`quizResult:${quizId}`, JSON.stringify({ questions, answers }));
-    setSubmitted(true);
-
-    if (!user) return;
-
-    const timeTakenSeconds = startTimeRef.current
-      ? Math.floor((Date.now() - startTimeRef.current) / 1000)
-      : null;
-
-    const attemptAnswers = questions.map((q, i) => ({
-      question_id: q.id,
-      question_content: q.content,
-      difficulty: q.difficulty,
-      selected_index: answers[i],
-      correct_index: q.correct_index,
-      is_correct: answers[i] === q.correct_index,
-    }));
-
-    const { error } = await saveQuizAttempt({
-      userId: user.id,
-      quizId,
-      quizTitle,
-      timeTakenSeconds,
-      answers: attemptAnswers,
-    });
-
-    if (error) {
-      showToast("Không thể lưu lịch sử làm bài: " + error, "error");
-    }
-  }
-
   function handleExit() {
     const confirmed = window.confirm("Kết quả của bạn sẽ không được tính. Xác nhận thoát?");
     if (confirmed) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      session.stopTimer();
       router.push("/");
     }
-  }
-
-  function handleStart() {
-    setStarted(true);
-    startTimeRef.current = Date.now();
-    if (!noLimit) {
-      const minutes = Math.max(1, parseInt(minutesInput, 10) || 15);
-      setTimeLeft(minutes * 60);
-    }
-  }
-
-  useEffect(() => {
-    if (!started || noLimit || timeLeft === null) return;
-
-    intervalRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev === null) return null;
-        if (prev <= 1) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [started, noLimit]);
-
-  useEffect(() => {
-    if (started && !submitted && timeLeft === 0) {
-      handleSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft]);
-
-  function formatTime(seconds: number) {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
   }
 
   if (loading) {
@@ -235,7 +128,7 @@ export default function PracticePage() {
     return <div className="p-8 text-center text-gray-500">Bộ đề này chưa có câu hỏi nào.</div>;
   }
 
-  if (!started) {
+  if (!session.started) {
     return (
       <div className="p-8 max-w-md mx-auto text-center animate-fade-up">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{quizTitle}</h1>
@@ -245,34 +138,34 @@ export default function PracticePage() {
           <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
             <input
               type="checkbox"
-              checked={noLimit}
-              onChange={(e) => setNoLimit(e.target.checked)}
+              checked={session.noLimit}
+              onChange={(e) => session.setNoLimit(e.target.checked)}
               className="accent-primary w-4 h-4"
             />
             Không giới hạn thời gian
           </label>
 
-          <div className={cn(noLimit && "opacity-40 pointer-events-none")}>
+          <div className={cn(session.noLimit && "opacity-40 pointer-events-none")}>
             <Input
               type="number"
               min={1}
               label="Thời gian làm bài (phút)"
-              value={minutesInput}
-              onChange={(e) => setMinutesInput(e.target.value.replace(/[^0-9]/g, ""))}
-              disabled={noLimit}
+              value={session.minutesInput}
+              onChange={(e) => session.setMinutesInput(e.target.value.replace(/[^0-9]/g, ""))}
+              disabled={session.noLimit}
             />
           </div>
         </Card>
 
-        <Button onClick={handleStart} variant="primary" className="mt-6 w-full" size="lg">
+        <Button onClick={session.handleStart} variant="primary" className="mt-6 w-full" size="lg">
           Bắt đầu làm bài
         </Button>
       </div>
     );
   }
 
-  const question = questions[currentIndex];
-  const answeredCount = answers.filter((a) => a !== null).length;
+  const question = questions[session.currentIndex];
+  const answeredCount = session.answers.filter((a) => a !== null).length;
 
   return (
     <div className="p-8 max-w-3xl mx-auto animate-fade-up">
@@ -284,7 +177,7 @@ export default function PracticePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {!submitted && (
+          {!session.submitted && (
             <button
               onClick={handleExit}
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-danger transition-colors px-2 py-1"
@@ -293,21 +186,21 @@ export default function PracticePage() {
               Thoát
             </button>
           )}
-          {!submitted && timeLeft !== null && (
-            <Badge variant={timeLeft <= 30 ? "danger" : "default"} className="text-sm px-3 py-1.5">
+          {!session.submitted && session.timeLeft !== null && (
+            <Badge variant={session.timeLeft <= 30 ? "danger" : "default"} className="text-sm px-3 py-1.5">
               <Clock size={14} />
-              {formatTime(timeLeft)}
+              {session.formatTime(session.timeLeft)}
             </Badge>
           )}
         </div>
       </div>
 
-      {!submitted ? (
+      {!session.submitted ? (
         <>
           <Card className="p-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-primary font-medium">
-                Câu {currentIndex + 1} / {questions.length}
+                Câu {session.currentIndex + 1} / {questions.length}
               </p>
               <div className="flex items-center gap-2">
                 <Badge variant={DIFFICULTY_VARIANT[question.difficulty]}>
@@ -340,11 +233,11 @@ export default function PracticePage() {
 
             <div className="flex flex-col gap-3">
               {question.options.map((option, index) => {
-                const isSelected = answers[currentIndex] === index;
+                const isSelected = session.answers[session.currentIndex] === index;
                 return (
                   <button
                     key={index}
-                    onClick={() => handleSelect(index)}
+                    onClick={() => session.handleSelect(index)}
                     className={cn(
                       "text-left px-4 py-3 rounded-lg border transition-all duration-150",
                       "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
@@ -362,20 +255,20 @@ export default function PracticePage() {
 
             <div className="flex justify-between mt-8">
               <Button
-                onClick={handlePrevious}
-                disabled={currentIndex === 0}
+                onClick={session.handlePrevious}
+                disabled={session.currentIndex === 0}
                 variant="secondary"
                 leftIcon={<ChevronLeft size={16} />}
               >
                 Trước
               </Button>
 
-              {currentIndex === questions.length - 1 ? (
-                <Button onClick={handleSubmit} variant="danger" rightIcon={<Send size={16} />}>
+              {session.currentIndex === questions.length - 1 ? (
+                <Button onClick={session.handleSubmit} variant="danger" rightIcon={<Send size={16} />}>
                   Nộp bài
                 </Button>
               ) : (
-                <Button onClick={handleNext} variant="primary" rightIcon={<ChevronRight size={16} />}>
+                <Button onClick={session.handleNext} variant="primary" rightIcon={<ChevronRight size={16} />}>
                   Tiếp
                 </Button>
               )}
@@ -388,14 +281,14 @@ export default function PracticePage() {
             </p>
             <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
               {questions.map((q, i) => {
-                const isCurrent = i === currentIndex;
-                const isAnswered = answers[i] !== null;
+                const isCurrent = i === session.currentIndex;
+                const isAnswered = session.answers[i] !== null;
                 const isBookmarked = bookmarkedIds.has(q.id);
 
                 return (
                   <button
                     key={i}
-                    onClick={() => setCurrentIndex(i)}
+                    onClick={() => session.setCurrentIndex(i)}
                     className={cn(
                       "relative h-9 w-9 rounded-md text-sm font-medium border transition-all duration-150",
                       "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
@@ -427,7 +320,7 @@ export default function PracticePage() {
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
             Đúng{" "}
             <span className="text-primary font-semibold">
-              {questions.filter((q, i) => answers[i] === q.correct_index).length}
+              {questions.filter((q, i) => session.answers[i] === q.correct_index).length}
             </span>
             /{questions.length} câu
           </p>
