@@ -11,6 +11,8 @@ import Badge from "@/components/ui/Badge";
 import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { saveQuizAttempt } from "@/lib/quizAttempts";
+import { useToast } from "@/components/ui/Toast";
 
 type Question = {
   id: number;
@@ -32,6 +34,7 @@ export default function PracticePage() {
   const quizId = Number(params.id);
   const router = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [quizTitle, setQuizTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -48,6 +51,7 @@ export default function PracticePage() {
   const [noLimit, setNoLimit] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -135,13 +139,40 @@ export default function PracticePage() {
     if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
     localStorage.setItem(`quizResult:${quizId}`, JSON.stringify({ questions, answers }));
     setSubmitted(true);
+
+    if (!user) return;
+
+    const timeTakenSeconds = startTimeRef.current
+      ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+      : null;
+
+    const attemptAnswers = questions.map((q, i) => ({
+      question_id: q.id,
+      question_content: q.content,
+      difficulty: q.difficulty,
+      selected_index: answers[i],
+      correct_index: q.correct_index,
+      is_correct: answers[i] === q.correct_index,
+    }));
+
+    const { error } = await saveQuizAttempt({
+      userId: user.id,
+      quizId,
+      quizTitle,
+      timeTakenSeconds,
+      answers: attemptAnswers,
+    });
+
+    if (error) {
+      showToast("Không thể lưu lịch sử làm bài: " + error, "error");
+    }
   }
 
   function handleExit() {
@@ -157,6 +188,7 @@ export default function PracticePage() {
 
   function handleStart() {
     setStarted(true);
+    startTimeRef.current = Date.now();
     if (!noLimit) {
       const minutes = Math.max(1, parseInt(minutesInput, 10) || 15);
       setTimeLeft(minutes * 60);
