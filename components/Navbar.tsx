@@ -52,6 +52,24 @@ export default function Navbar() {
               Môn học
             </Link>
           )}
+          {user && (
+            <Link
+              href="/stats"
+              className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+            >
+              <BarChart3 size={15} />
+              Thống kê
+            </Link>
+          )}
+          {user && (
+            <Link
+              href="/history"
+              className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+            >
+              <History size={15} />
+              Lịch sử
+            </Link>
+          )}
         </div>
 
         {/* Desktop */}
@@ -110,20 +128,6 @@ export default function Navbar() {
                       <Shield size={15} /> Quản trị
                     </Link>
                   )}
-                  <Link
-                    href="/history"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <History size={15} /> Lịch sử làm bài
-                  </Link>
-                  <Link
-                    href="/stats"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <BarChart3 size={15} /> Thống kê học tập
-                  </Link>
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
@@ -186,6 +190,26 @@ export default function Navbar() {
 
           {user && (
             <Link
+              href="/stats"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <BarChart3 size={16} /> Thống kê
+            </Link>
+          )}
+
+          {user && (
+            <Link
+              href="/history"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <History size={16} /> Lịch sử
+            </Link>
+          )}
+
+          {user && (
+            <Link
               href="/practice/bookmarks"
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -213,20 +237,6 @@ export default function Navbar() {
                   <Shield size={16} /> Quản trị
                 </Link>
               )}
-              <Link
-                href="/history"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <History size={16} /> Lịch sử làm bài
-              </Link>
-              <Link
-                href="/stats"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <BarChart3 size={16} /> Thống kê học tập
-              </Link>
               <Link
                 href="/setting"
                 onClick={() => setMobileOpen(false)}
