@@ -19,9 +19,9 @@ export type QuizStat = {
 export async function getDifficultyStats(userId: string): Promise<DifficultyStat[]> {
   const { data, error } = await supabase
     .from("quiz_attempt_answers")
-    .select("difficulty, is_correct, quiz_attempts!inner(user_id)")
-    .eq("quiz_attempts.user_id", userId);
-
+    .select("difficulty, is_correct, quiz_attempts!inner(user_id, attempt_type)")
+    .eq("quiz_attempts.user_id", userId)
+    .eq("quiz_attempts.attempt_type", "quiz");
   if (error || !data) return [];
 
   const map: Record<string, { total: number; correct: number }> = {};
@@ -40,7 +40,7 @@ export async function getDifficultyStats(userId: string): Promise<DifficultyStat
 
 // Thống kê tỷ lệ đúng theo từng bộ đề, gộp toàn bộ lượt làm bài của bộ đề đó
 export async function getQuizStats(userId: string): Promise<QuizStat[]> {
-  const attempts = await getUserAttempts(userId);
+  const attempts = await getUserAttempts(userId, ["quiz"]);
   const map = new Map<string, QuizStat>();
 
   attempts.forEach((a) => {
