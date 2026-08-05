@@ -90,6 +90,37 @@ export async function getUserAttempts(
   return data;
 }
 
+const HISTORY_PAGE_SIZE = 20;
+
+export async function getUserAttemptsPage(
+  userId: string,
+  page: number,
+  attemptTypes?: AttemptType[]
+): Promise<{ items: AttemptSummary[]; hasMore: boolean }> {
+  const from = page * HISTORY_PAGE_SIZE;
+  const to = from + HISTORY_PAGE_SIZE; // lấy dư 1 dòng để biết còn trang sau không
+
+  let query = supabase
+    .from("quiz_attempts")
+    .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, attempt_type, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (attemptTypes && attemptTypes.length > 0) {
+    query = query.in("attempt_type", attemptTypes);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data) return { items: [], hasMore: false };
+
+  const hasMore = data.length > HISTORY_PAGE_SIZE;
+  const items = hasMore ? data.slice(0, HISTORY_PAGE_SIZE) : data;
+
+  return { items, hasMore };
+}
+
 export type AttemptDetailAnswer = {
   id: number;
   question_content: string;

@@ -6,8 +6,9 @@ import RequireAuth from "@/components/RequireAuth";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Skeleton from "@/components/ui/Skeleton";
+import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
-import { getUserAttempts, type AttemptSummary } from "@/lib/quizAttempts";
+import { getUserAttemptsPage, type AttemptSummary } from "@/lib/quizAttempts";
 
 function formatDuration(seconds: number | null) {
   if (seconds === null) return "—";
@@ -37,18 +38,34 @@ export default function HistoryPage() {
   const { user, loading: authLoading } = useAuth();
   const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
     async function load() {
       setLoading(true);
-      const data = await getUserAttempts(user!.id);
-      setAttempts(data);
+      const { items, hasMore } = await getUserAttemptsPage(user!.id, 0);
+      setAttempts(items);
+      setHasMore(hasMore);
+      setPage(0);
       setLoading(false);
     }
     load();
   }, [authLoading, user]);
+
+  async function handleLoadMore() {
+    if (!user || loadingMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const { items, hasMore: more } = await getUserAttemptsPage(user.id, nextPage);
+    setAttempts((prev) => [...prev, ...items]);
+    setHasMore(more);
+    setPage(nextPage);
+    setLoadingMore(false);
+  }
 
   const groups = useMemo<QuizGroup[]>(() => {
     const map = new Map<string, QuizGroup>();
@@ -89,6 +106,7 @@ export default function HistoryPage() {
             <p className="font-medium">Bạn chưa làm bài lượt nào</p>
           </div>
         ) : (
+          <>
           <div className="flex flex-col gap-3">
             {groups.map((group) => {
               const isExpanded = expandedKey === group.key;
@@ -157,6 +175,15 @@ export default function HistoryPage() {
               );
             })}
           </div>
+
+          {hasMore && (
+            <div className="flex justify-center mt-6">
+              <Button variant="secondary" onClick={handleLoadMore} loading={loadingMore}>
+                {loadingMore ? "Đang tải..." : "Xem thêm"}
+              </Button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </RequireAuth>
