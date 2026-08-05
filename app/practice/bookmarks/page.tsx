@@ -169,7 +169,7 @@ export default function BookmarksPracticePage() {
   function handleExit() {
     const confirmed = window.confirm("Kết quả của bạn sẽ không được tính. Xác nhận thoát?");
     if (confirmed) {
-      session.stopTimer();
+      session.forceExit();
       router.push("/");
     }
   }

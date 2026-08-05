@@ -200,6 +200,11 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
     return `${m}:${s}`;
   }
 
+  function forceExit() {
+    stopTimer();
+    setStarted(false);
+  }
+
   return {
     currentIndex,
     setCurrentIndex,
@@ -218,6 +223,7 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
     handleSubmit,
     stopTimer,
     resetSession,
+    forceExit,
     formatTime,
   };
 }
