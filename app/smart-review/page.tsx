@@ -82,13 +82,17 @@ export default function SmartReviewPage() {
       ? groups.find((g) => g.key === selectedGroupKey)?.quizId ?? null
       : null;
 
-  const sessionQuestions: PracticeQuestion[] = activeQuestions.map((q) => ({
-    id: q.questionId,
-    content: q.content,
-    options: q.options,
-    correct_index: q.correctIndex,
-    difficulty: q.difficulty,
-  }));
+  const sessionQuestions: PracticeQuestion[] = useMemo(
+    () =>
+      activeQuestions.map((q) => ({
+        id: q.questionId,
+        content: q.content,
+        options: q.options,
+        correct_index: q.correctIndex,
+        difficulty: q.difficulty,
+      })),
+    [activeQuestions]
+  );
 
   const session = usePracticeSession({
     questions: sessionQuestions,
