@@ -105,6 +105,10 @@ export default function CreateQuizPage() {
       setSaveError("Vui lòng nhập tên bộ đề.");
       return;
     }
+    if (title.trim().length > 200) {
+      setSaveError("Tên bộ đề không được vượt quá 200 ký tự.");
+      return;
+    }
     if (!allAnswered) {
       setSaveError("Vui lòng chọn đáp án đúng cho tất cả câu hỏi.");
       return;
@@ -140,8 +144,9 @@ export default function CreateQuizPage() {
     const { error: questionsError } = await supabase.from("questions").insert(rows);
 
     if (questionsError) {
+      await supabase.from("quizzes").delete().eq("id", quiz.id);
       setSaving(false);
-      setSaveError(questionsError.message);
+      setSaveError("Không thể lưu câu hỏi, đã huỷ bộ đề vừa tạo: " + questionsError.message);
       return;
     }
 

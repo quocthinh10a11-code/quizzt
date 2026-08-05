@@ -163,6 +163,17 @@ export default function EditQuizPage() {
     setSaving(true);
     setMessage(null);
 
+    if (!title.trim()) {
+      setMessage("Vui lòng nhập tên bộ đề.");
+      setSaving(false);
+      return;
+    }
+    if (title.trim().length > 200) {
+      setMessage("Tên bộ đề không được vượt quá 200 ký tự.");
+      setSaving(false);
+      return;
+    }
+
     for (const q of questions) {
       if (!q.content.trim() || q.options.some((o) => !o.trim())) {
         setMessage("Mỗi câu hỏi cần đủ nội dung và 4 đáp án, không được để trống.");

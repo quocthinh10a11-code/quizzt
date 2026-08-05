@@ -70,13 +70,15 @@ export type AttemptSummary = {
 
 export async function getUserAttempts(
   userId: string,
-  attemptTypes?: AttemptType[]
+  attemptTypes?: AttemptType[],
+  limit: number = 50
 ): Promise<AttemptSummary[]> {
   let query = supabase
     .from("quiz_attempts")
     .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, attempt_type, created_at")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(limit);
 
   if (attemptTypes && attemptTypes.length > 0) {
     query = query.in("attempt_type", attemptTypes);

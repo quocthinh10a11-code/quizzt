@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Clock, ChevronLeft, ChevronRight, Send, CheckCircle2,
@@ -19,6 +19,8 @@ import {
   removeFromReviewQueue,
   type DueReviewQuestion,
 } from "@/lib/reviewQueue";
+
+const BATCH_SIZE = 20;
 
 type QuizGroup = {
   key: string;
@@ -43,16 +45,18 @@ export default function SmartReviewPage() {
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [showManage, setShowManage] = useState(false);
 
+  const loadDue = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    const data = await getDueReviewQuestions(user.id);
+    setAllDue(data);
+    setLoading(false);
+  }, [user]);
+
   useEffect(() => {
     if (authLoading || !user) return;
-    async function load() {
-      setLoading(true);
-      const data = await getDueReviewQuestions(user!.id);
-      setAllDue(data);
-      setLoading(false);
-    }
-    load();
-  }, [authLoading, user]);
+    loadDue();
+  }, [authLoading, user, loadDue]);
 
   const groups = useMemo<QuizGroup[]>(() => {
     const map = new Map<string, QuizGroup>();
@@ -66,11 +70,20 @@ export default function SmartReviewPage() {
     return Array.from(map.values()).sort((a, b) => a.quizTitle.localeCompare(b.quizTitle));
   }, [allDue]);
 
-  const activeQuestions = useMemo<DueReviewQuestion[]>(() => {
+  // Toàn bộ câu của nhóm đang chọn (có thể nhiều hơn 1 lượt ôn)
+  const groupQuestions = useMemo<DueReviewQuestion[]>(() => {
     if (selectedGroupKey === null) return [];
     if (selectedGroupKey === "all") return allDue;
     return groups.find((g) => g.key === selectedGroupKey)?.questions ?? [];
   }, [selectedGroupKey, allDue, groups]);
+
+  // Chỉ lấy tối đa BATCH_SIZE câu cho 1 lượt ôn, tránh render/tải quá nhiều cùng lúc
+  const activeQuestions = useMemo<DueReviewQuestion[]>(
+    () => groupQuestions.slice(0, BATCH_SIZE),
+    [groupQuestions]
+  );
+
+  const remainingAfterBatch = Math.max(0, groupQuestions.length - activeQuestions.length);
 
   const activeTitle =
     selectedGroupKey === "all"
@@ -129,6 +142,13 @@ export default function SmartReviewPage() {
     );
   }
 
+  // Sau khi ôn xong 1 lượt -> tải lại danh sách còn hạn, rồi quay về màn hình chọn nhóm
+  async function handleFinishBatch() {
+    session.forceExit();
+    setSelectedGroupKey(null);
+    await loadDue();
+  }
+
   async function handleRemove(questionId: number) {
     if (!user) return;
     const prevList = allDue;
@@ -159,7 +179,9 @@ export default function SmartReviewPage() {
     return (
       <div className="p-8 max-w-2xl mx-auto animate-fade-up">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Ôn tập hôm nay</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">Chọn bộ đề để ôn các câu đã đến hạn</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          Chọn bộ đề để ôn các câu đã đến hạn (mỗi lượt tối đa {BATCH_SIZE} câu)
+        </p>
 
         <div className="flex flex-col gap-3">
           <Card
@@ -234,7 +256,12 @@ export default function SmartReviewPage() {
         </button>
 
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{activeTitle}</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">{activeQuestions.length} câu hỏi</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-1">{activeQuestions.length} câu hỏi trong lượt này</p>
+        {remainingAfterBatch > 0 && (
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">
+            Còn {remainingAfterBatch} câu khác sẽ ôn ở lượt tiếp theo
+          </p>
+        )}
 
         <Card className="p-6 text-left">
           <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
@@ -384,14 +411,19 @@ export default function SmartReviewPage() {
         <Card className="p-8 text-center">
           <CheckCircle2 size={40} className="mx-auto text-success mb-3" />
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Đã cập nhật chu kỳ ôn tập</h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
             Đúng{" "}
             <span className="text-primary font-semibold">
               {activeQuestions.filter((q, i) => session.answers[i] === q.correctIndex).length}
             </span>
             /{activeQuestions.length} câu
           </p>
-          <Button onClick={() => router.push("/smart-review")} variant="primary" size="lg">
+          {remainingAfterBatch > 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Còn {remainingAfterBatch} câu chưa ôn trong danh sách hôm nay.
+            </p>
+          )}
+          <Button onClick={handleFinishBatch} variant="primary" size="lg">
             Về danh sách ôn tập
           </Button>
         </Card>
