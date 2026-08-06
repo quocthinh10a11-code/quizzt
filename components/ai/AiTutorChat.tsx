@@ -5,7 +5,7 @@ import { MessageCircle, Send, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Message = {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "divider";
   content: string;
 };
 
@@ -15,7 +15,8 @@ type Props = {
     options: string[];
     correctIndex: number;
   };
-  // Đổi giá trị này (ví dụ questionId) mỗi khi sang câu khác, để component tự reset lịch sử chat
+  // Đổi giá trị này (ví dụ questionId) mỗi khi sang câu khác.
+  // Lịch sử KHÔNG bị xoá, chỉ chèn 1 dòng phân cách để đánh dấu đã chuyển ngữ cảnh.
   resetKey: string | number;
 };
 
@@ -26,12 +27,24 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
+  const prevResetKey = useRef(resetKey);
 
-  // Sang câu hỏi khác -> xoá lịch sử chat cũ, tránh AI trả lời nhầm ngữ cảnh câu trước
+  // Sang câu hỏi khác -> chèn dòng phân cách, KHÔNG xoá lịch sử cũ
   useEffect(() => {
-    setMessages([]);
-    setInput("");
-    setError("");
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      prevResetKey.current = resetKey;
+      return;
+    }
+    if (prevResetKey.current !== resetKey) {
+      prevResetKey.current = resetKey;
+      setMessages((prev) =>
+        prev.length > 0 ? [...prev, { role: "divider", content: "Đã chuyển sang câu hỏi mới" }] : prev
+      );
+      setError("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
   useEffect(() => {
@@ -48,13 +61,18 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
     setInput("");
     setLoading(true);
 
+    // Chỉ gửi tin nhắn thật (user/assistant) cho API, bỏ qua dòng phân cách hiển thị
+    const apiHistory = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
     try {
       const res = await fetch("/api/ai/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questionContext,
-          history: messages,
+          history: apiHistory,
           userMessage: trimmed,
         }),
       });
@@ -116,19 +134,27 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
           </p>
         )}
 
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={cn(
-              "max-w-[85%] px-3 py-2 rounded-lg text-sm",
-              m.role === "user"
-                ? "self-end bg-primary text-white"
-                : "self-start bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
-            )}
-          >
-            {m.content}
-          </div>
-        ))}
+        {messages.map((m, i) =>
+          m.role === "divider" ? (
+            <div key={i} className="flex items-center gap-2 my-1">
+              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{m.content}</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+            </div>
+          ) : (
+            <div
+              key={i}
+              className={cn(
+                "max-w-[85%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap break-words",
+                m.role === "user"
+                  ? "self-end bg-primary text-white"
+                  : "self-start bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+              )}
+            >
+              {m.content}
+            </div>
+          )
+        )}
 
         {loading && (
           <div className="self-start flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
