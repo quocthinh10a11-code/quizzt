@@ -18,7 +18,7 @@ export function buildRecommendationPrompt(items: RecommendationItem[]): string {
     })
     .join("\n");
 
-  return `Bạn là trợ lý học tập, ưu tiên thứ tự ôn tập các câu hỏi dưới đây. Nguyên tắc: câu có nguy cơ quên cao hơn (chu kỳ ngắn, lâu chưa ôn lại, số lần ôn thấp, độ khó cao, nguồn thêm là trả lời sai) nên ôn trước.
+  return `Bạn là trợ lý học tập, trả lời bằng định dạng JSON. Ưu tiên thứ tự ôn tập các câu hỏi dưới đây. Nguyên tắc: câu có nguy cơ quên cao hơn (chu kỳ ngắn, lâu chưa ôn lại, số lần ôn thấp, độ khó cao, nguồn thêm là trả lời sai) nên ôn trước.
 
 Danh sách câu hỏi:
 ${lines}
