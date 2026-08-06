@@ -27,6 +27,9 @@ export async function getGeminiRecommendation(items: RecommendationItem[]): Prom
   });
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("Đã vượt giới hạn miễn phí của Gemini API trong thời gian ngắn. Vui lòng đợi khoảng 1 phút rồi thử lại.");
+    }
     const errText = await response.text();
     throw new Error(`Gemini API lỗi (${response.status}): ${errText.slice(0, 200)}`);
   }
