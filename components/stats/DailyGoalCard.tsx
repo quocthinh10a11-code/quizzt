@@ -109,6 +109,15 @@ export default function DailyGoalCard({ userId }: Props) {
               min={1}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value.replace(/[^0-9]/g, ""))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSave();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  handleCancel();
+                }
+              }}
               disabled={saving}
               className="w-16 px-2 py-1 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-50"
               autoFocus
