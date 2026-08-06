@@ -38,6 +38,8 @@ export default function DailyGoalCard({ userId }: Props) {
   }
 
   async function handleSave() {
+    if (saving) return; // chặn gọi trùng nếu Enter bị bấm nhiều lần liên tiếp trước khi state saving kịp cập nhật
+
     setErrorMessage("");
 
     if (inputValue.trim() === "") {
@@ -113,7 +115,7 @@ export default function DailyGoalCard({ userId }: Props) {
                 if (e.key === "Enter") {
                   e.preventDefault();
                   handleSave();
-                } else if (e.key === "Escape") {
+                } else if (e.key === "Escape" && !saving) {
                   e.preventDefault();
                   handleCancel();
                 }
