@@ -20,6 +20,15 @@ import {
   type DueReviewQuestion,
   type ReviewQuality,
 } from "@/lib/reviewQueue";
+import { Sparkles } from "lucide-react";
+
+type AiReason = { priority: number; reason: string };
+
+function daysBetween(iso: string | null): number | null {
+  if (!iso) return null;
+  const diffMs = Date.now() - new Date(iso).getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
 
 const BATCH_SIZE = 20;
 
@@ -52,6 +61,9 @@ export default function SmartReviewPage() {
   const [loading, setLoading] = useState(true);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [showManage, setShowManage] = useState(false);
+  const [aiReasons, setAiReasons] = useState<Record<number, AiReason>>({});
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   // Sau khi nộp bài: lưu lựa chọn Review Quality cho từng câu, theo questionId
   const [qualityChoices, setQualityChoices] = useState<Record<number, ReviewQuality>>({});
@@ -88,9 +100,18 @@ export default function SmartReviewPage() {
     return groups.find((g) => g.key === selectedGroupKey)?.questions ?? [];
   }, [selectedGroupKey, allDue, groups]);
 
+  const orderedGroupQuestions = useMemo<DueReviewQuestion[]>(() => {
+    if (Object.keys(aiReasons).length === 0) return groupQuestions;
+    return [...groupQuestions].sort((a, b) => {
+      const pa = aiReasons[a.questionId]?.priority ?? 999;
+      const pb = aiReasons[b.questionId]?.priority ?? 999;
+      return pa - pb;
+    });
+  }, [groupQuestions, aiReasons]);
+
   const activeQuestions = useMemo<DueReviewQuestion[]>(
-    () => groupQuestions.slice(0, BATCH_SIZE),
-    [groupQuestions]
+    () => orderedGroupQuestions.slice(0, BATCH_SIZE),
+    [orderedGroupQuestions]
   );
 
   const remainingAfterBatch = Math.max(0, groupQuestions.length - activeQuestions.length);
@@ -129,7 +150,50 @@ export default function SmartReviewPage() {
   function handleChooseGroup(key: string) {
     setSelectedGroupKey(key);
     setQualityChoices({});
+    setAiReasons({});
+    setAiError("");
     session.resetSession();
+  }
+
+  async function handleAskAi() {
+    setAiLoading(true);
+    setAiError("");
+
+    const items = groupQuestions.slice(0, 30).map((q) => ({
+      questionId: q.questionId,
+      content: q.content,
+      quizTitle: q.quizTitle,
+      difficulty: q.difficulty,
+      intervalDays: q.intervalDays,
+      reviewCount: q.reviewCount,
+      source: q.source,
+      daysSinceLastReview: daysBetween(q.lastReviewedAt),
+    }));
+
+    try {
+      const res = await fetch("/api/ai/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAiError(data.error ?? "Không thể lấy gợi ý AI.");
+        setAiLoading(false);
+        return;
+      }
+
+      const map: Record<number, AiReason> = {};
+      for (const r of data.result) {
+        map[r.questionId] = { priority: r.priority, reason: r.reason };
+      }
+      setAiReasons(map);
+    } catch {
+      setAiError("Lỗi kết nối tới máy chủ AI.");
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   function handleBackToSelection() {
@@ -305,7 +369,27 @@ export default function SmartReviewPage() {
           </div>
         </Card>
 
-        <Button onClick={session.handleStart} variant="primary" className="mt-6 w-full" size="lg">
+        <div className="mt-4">
+          {Object.keys(aiReasons).length === 0 ? (
+            <Button
+              onClick={handleAskAi}
+              disabled={aiLoading}
+              loading={aiLoading}
+              variant="secondary"
+              className="w-full"
+              leftIcon={!aiLoading && <Sparkles size={16} />}
+            >
+              {aiLoading ? "AI đang phân tích..." : "Gợi ý thứ tự ôn bằng AI"}
+            </Button>
+          ) : (
+            <p className="text-xs text-success flex items-center gap-1.5">
+              <Sparkles size={13} /> Đã sắp xếp thứ tự theo gợi ý AI
+            </p>
+          )}
+          {aiError && <p className="text-xs text-danger mt-2">{aiError}</p>}
+        </div>
+
+        <Button onClick={session.handleStart} variant="primary" className="mt-3 w-full" size="lg">
           Bắt đầu ôn tập
         </Button>
       </div>
@@ -354,6 +438,11 @@ export default function SmartReviewPage() {
                 {DIFFICULTY_LABEL[question.difficulty]}
               </Badge>
             </div>
+            {aiReasons[question.id] && (
+              <p className="text-xs text-primary flex items-center gap-1.5 mb-2">
+                <Sparkles size={12} /> {aiReasons[question.id].reason}
+              </p>
+            )}
             <p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
 
             <div className="flex flex-col gap-3">

@@ -86,6 +86,8 @@ export type DueReviewQuestion = {
   difficulty: "easy" | "medium" | "hard";
   quizId: number | null;
   quizTitle: string;
+  lastReviewedAt: string | null;
+  source: string;
 };
 
 // Lấy các câu đã đến hạn ôn hôm nay (next_review_date <= hôm nay)
@@ -95,7 +97,7 @@ export async function getDueReviewQuestions(userId: string): Promise<DueReviewQu
   const { data, error } = await supabase
     .from("review_queue")
     .select(
-      "id, question_id, interval_days, review_count, questions(content, options, correct_index, difficulty, quiz_id, quizzes(title))"
+      "id, question_id, interval_days, review_count, last_reviewed_at, source, questions(content, options, correct_index, difficulty, quiz_id, quizzes(title))"
     )
     .eq("user_id", userId)
     .lte("next_review_date", today);
@@ -117,6 +119,8 @@ export async function getDueReviewQuestions(userId: string): Promise<DueReviewQu
         difficulty: q.difficulty,
         quizId: q.quiz_id,
         quizTitle: q.quizzes?.title ?? "Bộ đề không xác định",
+        lastReviewedAt: row.last_reviewed_at,
+        source: row.source,
       };
     })
     .filter(Boolean) as DueReviewQuestion[];
