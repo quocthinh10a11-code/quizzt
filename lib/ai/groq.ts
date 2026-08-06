@@ -1,5 +1,6 @@
 import { buildRecommendationPrompt } from "./prompts";
-import type { RecommendationItem, RecommendationResult } from "./prompts";
+import type { RecommendationItem } from "./prompts";
+import type { RecommendationResult } from "./gemini";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
