@@ -1,10 +1,5 @@
-import { buildRecommendationPrompt, type RecommendationItem } from "./prompts";
-
-export type RecommendationResult = {
-  questionId: number;
-  priority: number;
-  reason: string;
-};
+import { buildRecommendationPrompt } from "./prompts";
+import type { RecommendationItem, RecommendationResult } from "./prompts";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;

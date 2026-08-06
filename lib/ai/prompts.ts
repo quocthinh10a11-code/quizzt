@@ -9,6 +9,12 @@ export type RecommendationItem = {
   daysSinceLastReview: number | null;
 };
 
+export type RecommendationResult = {
+  questionId: number;
+  priority: number;
+  reason: string;
+};
+
 export function buildRecommendationPrompt(items: RecommendationItem[]): string {
   const lines = items
     .map((item, i) => {

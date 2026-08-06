@@ -1,5 +1,5 @@
 import { getGroqRecommendation } from "./groq";
-import type { RecommendationResult, RecommendationItem } from "./prompts";
+import type { RecommendationItem, RecommendationResult } from "./prompts";
 
 // Lớp trừu tượng duy nhất mà API route gọi tới. Sau này muốn đổi provider,
 // chỉ sửa hàm bên trong file này — không đụng route hay UI.

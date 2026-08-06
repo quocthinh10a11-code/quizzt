@@ -1,6 +1,5 @@
 import { buildRecommendationPrompt } from "./prompts";
-import type { RecommendationItem } from "./prompts";
-import type { RecommendationResult } from "./gemini";
+import type { RecommendationItem, RecommendationResult } from "./prompts";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -46,8 +45,6 @@ export async function getGroqRecommendation(items: RecommendationItem[]): Promis
     throw new Error("Không parse được JSON từ Groq.");
   }
 
-  // Groq với response_format json_object đôi khi bọc kết quả trong 1 key,
-  // ví dụ {"result": [...]}, nên cần kiểm tra cả 2 trường hợp
   if (Array.isArray(parsed)) return parsed as RecommendationResult[];
   if (parsed && typeof parsed === "object") {
     const firstArrayValue = Object.values(parsed).find((v) => Array.isArray(v));
