@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 export type ReviewSource = "wrong_answer" | "bookmark" | "note" | "manual";
 
 const MAX_INTERVAL_DAYS = 60;
+const MAX_INTERVAL_DAYS_V2 = 180;
 
 // Thêm 1 câu hỏi vào hàng đợi ôn tập. Nếu đã có sẵn (trùng user_id+question_id
 // nhờ UNIQUE constraint), bỏ qua, không ghi đè để không mất tiến độ chu kỳ đang có.
@@ -161,6 +162,68 @@ export async function updateReviewProgress(
     .update({
       interval_days: newInterval,
       review_count: current.review_count + 1,
+      last_reviewed_at: new Date().toISOString(),
+      next_review_date: nextReviewDate.toISOString().slice(0, 10),
+    })
+    .eq("id", reviewId);
+
+  if (error) {
+    return { error: "Không thể cập nhật tiến độ ôn tập: " + error.message };
+  }
+
+  return { error: null };
+}
+
+// ==== V2: Review Quality (Again/Hard/Good/Easy) — SM-2 rút gọn ====
+
+export type ReviewQuality = "again" | "hard" | "good" | "easy";
+
+export async function updateReviewProgressV2(
+  reviewId: number,
+  quality: ReviewQuality
+): Promise<{ error: string | null }> {
+  const { data: row, error: fetchError } = await supabase
+    .from("review_queue")
+    .select("interval_days, ease_factor, review_count")
+    .eq("id", reviewId)
+    .single();
+
+  if (fetchError || !row) {
+    return { error: "Không tìm thấy mục ôn tập." };
+  }
+
+  let intervalDays: number = row.interval_days;
+  let easeFactor: number = row.ease_factor ?? 2.5;
+
+  switch (quality) {
+    case "again":
+      intervalDays = 1;
+      easeFactor = Math.max(1.3, easeFactor - 0.2);
+      break;
+    case "hard":
+      intervalDays = Math.ceil(intervalDays * 1.2);
+      easeFactor = Math.max(1.3, easeFactor - 0.15);
+      break;
+    case "good":
+      intervalDays = Math.ceil(intervalDays * easeFactor);
+      break;
+    case "easy":
+      intervalDays = Math.ceil(intervalDays * easeFactor * 1.3);
+      easeFactor = easeFactor + 0.15;
+      break;
+  }
+
+  intervalDays = Math.min(MAX_INTERVAL_DAYS_V2, Math.max(1, intervalDays));
+
+  const nextReviewDate = new Date();
+  nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
+
+  const { error } = await supabase
+    .from("review_queue")
+    .update({
+      interval_days: intervalDays,
+      ease_factor: easeFactor,
+      review_count: row.review_count + 1,
       last_reviewed_at: new Date().toISOString(),
       next_review_date: nextReviewDate.toISOString().slice(0, 10),
     })

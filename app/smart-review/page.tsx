@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Clock, ChevronLeft, ChevronRight, Send, CheckCircle2,
-  LogOut, ArrowLeft, Layers, Brain,
+  LogOut, ArrowLeft, Layers, Brain, Check, X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Card from "@/components/ui/Card";
@@ -15,9 +15,10 @@ import { cn } from "@/lib/utils";
 import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSession";
 import {
   getDueReviewQuestions,
-  updateReviewProgress,
+  updateReviewProgressV2,
   removeFromReviewQueue,
   type DueReviewQuestion,
+  type ReviewQuality,
 } from "@/lib/reviewQueue";
 
 const BATCH_SIZE = 20;
@@ -36,6 +37,13 @@ const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
   hard: "danger",
 };
 
+const QUALITY_BUTTONS: { value: ReviewQuality; label: string; className: string }[] = [
+  { value: "again", label: "Lại quên", className: "bg-red-500 hover:bg-red-600 text-white" },
+  { value: "hard", label: "Khó", className: "bg-orange-500 hover:bg-orange-600 text-white" },
+  { value: "good", label: "Bình thường", className: "bg-primary hover:bg-primary-hover text-white" },
+  { value: "easy", label: "Dễ", className: "bg-success hover:opacity-90 text-white" },
+];
+
 export default function SmartReviewPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -44,6 +52,10 @@ export default function SmartReviewPage() {
   const [loading, setLoading] = useState(true);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [showManage, setShowManage] = useState(false);
+
+  // Sau khi nộp bài: lưu lựa chọn Review Quality cho từng câu, theo questionId
+  const [qualityChoices, setQualityChoices] = useState<Record<number, ReviewQuality>>({});
+  const [savingProgress, setSavingProgress] = useState(false);
 
   const loadDue = useCallback(async () => {
     if (!user) return;
@@ -70,14 +82,12 @@ export default function SmartReviewPage() {
     return Array.from(map.values()).sort((a, b) => a.quizTitle.localeCompare(b.quizTitle));
   }, [allDue]);
 
-  // Toàn bộ câu của nhóm đang chọn (có thể nhiều hơn 1 lượt ôn)
   const groupQuestions = useMemo<DueReviewQuestion[]>(() => {
     if (selectedGroupKey === null) return [];
     if (selectedGroupKey === "all") return allDue;
     return groups.find((g) => g.key === selectedGroupKey)?.questions ?? [];
   }, [selectedGroupKey, allDue, groups]);
 
-  // Chỉ lấy tối đa BATCH_SIZE câu cho 1 lượt ôn, tránh render/tải quá nhiều cùng lúc
   const activeQuestions = useMemo<DueReviewQuestion[]>(
     () => groupQuestions.slice(0, BATCH_SIZE),
     [groupQuestions]
@@ -118,6 +128,7 @@ export default function SmartReviewPage() {
 
   function handleChooseGroup(key: string) {
     setSelectedGroupKey(key);
+    setQualityChoices({});
     session.resetSession();
   }
 
@@ -134,18 +145,26 @@ export default function SmartReviewPage() {
     }
   }
 
-  // Nộp bài xong -> cập nhật chu kỳ ôn tập cho từng câu theo đúng/sai
-  async function handleSubmitAndUpdateProgress() {
+  async function handleSubmit() {
     await session.handleSubmit();
-    await Promise.all(
-      activeQuestions.map((q, i) => updateReviewProgress(q.reviewId, session.answers[i] === q.correctIndex))
-    );
   }
 
-  // Sau khi ôn xong 1 lượt -> tải lại danh sách còn hạn, rồi quay về màn hình chọn nhóm
-  async function handleFinishBatch() {
-    session.forceExit();
+  function handleChooseQuality(questionId: number, quality: ReviewQuality) {
+    setQualityChoices((prev) => ({ ...prev, [questionId]: quality }));
+  }
+
+  const allQualityChosen =
+    activeQuestions.length > 0 && activeQuestions.every((q) => qualityChoices[q.questionId] !== undefined);
+
+  async function handleConfirmProgress() {
+    if (!allQualityChosen) return;
+    setSavingProgress(true);
+    await Promise.all(
+      activeQuestions.map((q) => updateReviewProgressV2(q.reviewId, qualityChoices[q.questionId]))
+    );
+    setSavingProgress(false);
     setSelectedGroupKey(null);
+    setQualityChoices({});
     await loadDue();
   }
 
@@ -369,7 +388,7 @@ export default function SmartReviewPage() {
                 Trước
               </Button>
               {session.currentIndex === activeQuestions.length - 1 ? (
-                <Button onClick={handleSubmitAndUpdateProgress} variant="danger" rightIcon={<Send size={16} />}>
+                <Button onClick={handleSubmit} variant="danger" rightIcon={<Send size={16} />}>
                   Nộp bài
                 </Button>
               ) : (
@@ -408,25 +427,63 @@ export default function SmartReviewPage() {
           </Card>
         </>
       ) : (
-        <Card className="p-8 text-center">
-          <CheckCircle2 size={40} className="mx-auto text-success mb-3" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Đã cập nhật chu kỳ ôn tập</h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
-            Đúng{" "}
-            <span className="text-primary font-semibold">
-              {activeQuestions.filter((q, i) => session.answers[i] === q.correctIndex).length}
-            </span>
-            /{activeQuestions.length} câu
-          </p>
-          {remainingAfterBatch > 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Còn {remainingAfterBatch} câu chưa ôn trong danh sách hôm nay.
+        <div className="flex flex-col gap-4">
+          <Card className="p-6 text-center">
+            <CheckCircle2 size={32} className="mx-auto text-success mb-2" />
+            <p className="text-gray-700 dark:text-gray-300">
+              Đúng{" "}
+              <span className="text-primary font-semibold">
+                {activeQuestions.filter((q, i) => session.answers[i] === q.correctIndex).length}
+              </span>
+              /{activeQuestions.length} câu — hãy tự đánh giá mức độ nhớ của bạn với từng câu bên dưới
             </p>
-          )}
-          <Button onClick={handleFinishBatch} variant="primary" size="lg">
-            Về danh sách ôn tập
+          </Card>
+
+          {activeQuestions.map((q, i) => {
+            const wasCorrect = session.answers[i] === q.correctIndex;
+            const chosen = qualityChoices[q.questionId];
+            return (
+              <Card key={q.questionId} className="p-5">
+                <div className="flex items-start gap-2 mb-3">
+                  {wasCorrect ? (
+                    <Check size={16} className="text-success shrink-0 mt-0.5" />
+                  ) : (
+                    <X size={16} className="text-danger shrink-0 mt-0.5" />
+                  )}
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    Câu {i + 1}. {q.content}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {QUALITY_BUTTONS.map((btn) => (
+                    <button
+                      key={btn.value}
+                      onClick={() => handleChooseQuality(q.questionId, btn.value)}
+                      className={cn(
+                        "px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                        chosen === btn.value
+                          ? btn.className
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:opacity-80"
+                      )}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+              </Card>
+            );
+          })}
+
+          <Button
+            onClick={handleConfirmProgress}
+            disabled={!allQualityChosen || savingProgress}
+            loading={savingProgress}
+            variant="primary"
+            size="lg"
+          >
+            {savingProgress ? "Đang lưu..." : "Xác nhận, về danh sách ôn tập"}
           </Button>
-        </Card>
+        </div>
       )}
     </div>
   );
