@@ -54,6 +54,12 @@ export default function StatsPage() {
           Thống kê học tập
         </h1>
 
+        {user && (
+          <div className="mb-6">
+            <DailyGoalCard userId={user.id} />
+          </div>
+        )}
+
         {authLoading || loading ? (
           <div className="flex flex-col gap-4">
             <Skeleton className="h-40 rounded-xl" />
@@ -67,7 +73,6 @@ export default function StatsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {user && <DailyGoalCard userId={user.id} />}
             {user && <StreakHeatmap userId={user.id} />}
 
             {/* Thống kê theo độ khó */}

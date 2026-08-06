@@ -35,6 +35,13 @@ export async function setDailyGoal(userId: string, value: number): Promise<{ err
 }
 
 // Tổng số câu đã làm hôm nay, cộng dồn total_questions từ mọi lượt (quiz/bookmark/review_queue...)
+//
+// LƯU Ý TỐI ƯU (chưa cần làm ngay, chỉ khi dữ liệu quiz_attempts đủ lớn để đo được chênh lệch):
+// Hiện đang fetch toàn bộ record trong ngày rồi reduce() ở client. Khi cần tối ưu,
+// thay bằng 1 trong 2 cách sau, KHÔNG đổi chữ ký hàm (vẫn nhận userId, trả về number)
+// để nơi gọi (DailyGoalCard) không cần sửa gì:
+//   1. Supabase RPC gọi hàm Postgres dùng SUM(total_questions) ... WHERE user_id = $1 AND created_at BETWEEN $2 AND $3
+//   2. .select("total_questions.sum()") nếu dùng Supabase JS v2 aggregate (cần kiểm tra version đang dùng có hỗ trợ không)
 export async function getTodayProgress(userId: string): Promise<number> {
   const { start, end } = getVnTodayRange();
 
