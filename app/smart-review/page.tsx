@@ -438,9 +438,9 @@ export default function SmartReviewPage() {
                 {DIFFICULTY_LABEL[question.difficulty]}
               </Badge>
             </div>
-            {aiReasons[question.id] && (
+            {aiReasons[question.questionId] && (
               <p className="text-xs text-primary flex items-center gap-1.5 mb-2">
-                <Sparkles size={12} /> {aiReasons[question.id].reason}
+                <Sparkles size={12} /> {aiReasons[question.questionId].reason}
               </p>
             )}
             <p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
