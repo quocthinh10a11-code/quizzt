@@ -21,6 +21,7 @@ import {
   type ReviewQuality,
 } from "@/lib/reviewQueue";
 import { Sparkles } from "lucide-react";
+import AiTutorChat from "@/components/ai/AiTutorChat";
 
 type AiReason = { priority: number; reason: string };
 
@@ -573,6 +574,16 @@ export default function SmartReviewPage() {
             {savingProgress ? "Đang lưu..." : "Xác nhận, về danh sách ôn tập"}
           </Button>
         </div>
+      )}
+    {session.started && !session.submitted && (
+        <AiTutorChat
+          questionContext={{
+            content: question.content,
+            options: question.options,
+            correctIndex: question.correctIndex,
+          }}
+          resetKey={question.questionId}
+        />
       )}
     </div>
   );

@@ -34,3 +34,28 @@ Trả lời DUY NHẤT bằng JSON hợp lệ, không thêm chữ nào khác, kh
 
 Phải trả về đủ ${items.length} phần tử, mỗi phần tử ứng đúng 1 questionId ở trên, không thêm không bớt.`;
 }
+
+export type TutorQuestionContext = {
+  content: string;
+  options: string[];
+  correctIndex: number;
+};
+
+export function buildTutorSystemPrompt(ctx: TutorQuestionContext): string {
+  const optionsText = ctx.options
+    .map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}${i === ctx.correctIndex ? " (đáp án đúng)" : ""}`)
+    .join("\n");
+
+  return `Bạn là gia sư AI hỗ trợ học sinh/sinh viên ôn tập trên ứng dụng Quizzt. Học sinh đang xem câu hỏi trắc nghiệm sau:
+
+Câu hỏi: ${ctx.content}
+${optionsText}
+
+Nhiệm vụ của bạn: trả lời các câu hỏi của học sinh liên quan đến câu hỏi trên — giải thích vì sao đáp án đúng, vì sao các đáp án khác sai, làm rõ khái niệm liên quan, cho ví dụ dễ hiểu.
+
+Yêu cầu:
+- Trả lời bằng tiếng Việt, ngắn gọn, súc tích (dưới 150 từ mỗi lần trả lời), giọng điệu thân thiện như gia sư.
+- Không tiết lộ đáp án đúng nếu học sinh chưa tự nhận ra, TRỪ KHI học sinh hỏi thẳng "đáp án đúng là gì" hoặc đã có vẻ biết đáp án qua ngữ cảnh câu hỏi.
+- Nếu câu hỏi của học sinh không liên quan gì đến nội dung bài học (ví dụ hỏi chuyện phiếm, yêu cầu làm việc khác), lịch sự từ chối và nhắc học sinh quay lại tập trung ôn tập.
+- Không bịa đặt thông tin không chắc chắn — nếu không chắc, nói rõ giới hạn hiểu biết của bạn.`;
+}
