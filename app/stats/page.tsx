@@ -8,6 +8,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import { getDifficultyStats, getQuizStats, type DifficultyStat, type QuizStat } from "@/lib/quizStats";
+import StreakHeatmap from "@/components/stats/StreakHeatmap";
 
 const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
 const DIFFICULTY_COLOR: Record<string, string> = {
@@ -65,6 +66,8 @@ export default function StatsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
+            {user && <StreakHeatmap userId={user.id} />}
+
             {/* Thống kê theo độ khó */}
             <Card className="p-6">
               <h2 className="font-semibold text-gray-900 dark:text-white mb-4">
