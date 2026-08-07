@@ -26,9 +26,28 @@ ${optionsText}`;
       reviewMeta.daysSinceLastReview === null
         ? "chưa từng ôn lại lần nào"
         : `ôn lần gần nhất cách đây ${reviewMeta.daysSinceLastReview} ngày`;
+
+    // reviewMeta.source giờ là ReviewSource (union type), switch thay vì so sánh string tự do
+    // để TypeScript tự cảnh báo nếu thiếu case khi union mở rộng sau này.
+    let sourceText: string;
+    switch (reviewMeta.source) {
+      case "wrong_answer":
+        sourceText = "học sinh từng trả lời sai";
+        break;
+      case "bookmark":
+        sourceText = "học sinh tự đánh dấu để ôn lại";
+        break;
+      case "note":
+        sourceText = "học sinh có ghi chú riêng cho câu này";
+        break;
+      case "manual":
+        sourceText = "được thêm thủ công";
+        break;
+    }
+
     section += `
 
-Bối cảnh ôn tập (Spaced Repetition): câu này đang trong chu kỳ ôn ${reviewMeta.intervalDays} ngày, đã ôn ${reviewMeta.reviewCount} lần, ${lastReview}, được thêm vào hàng đợi ôn tập vì lý do: ${reviewMeta.source === "wrong_answer" ? "học sinh từng trả lời sai" : reviewMeta.source === "bookmark" ? "học sinh tự đánh dấu để ôn lại" : reviewMeta.source === "note" ? "học sinh có ghi chú riêng cho câu này" : "được thêm thủ công"}.`;
+Bối cảnh ôn tập (Spaced Repetition): câu này đang trong chu kỳ ôn ${reviewMeta.intervalDays} ngày, đã ôn ${reviewMeta.reviewCount} lần, ${lastReview}, được thêm vào hàng đợi ôn tập vì lý do: ${sourceText}.`;
   }
 
   return section;

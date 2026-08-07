@@ -1,5 +1,7 @@
-import { buildRecommendationPrompt, buildTutorSystemPrompt } from "./prompts";
-import type { RecommendationItem, RecommendationResult, TutorQuestionContext, TutorMode } from "./prompts";
+import { buildRecommendationPrompt } from "./prompts";
+import type { RecommendationItem, RecommendationResult } from "./prompts";
+import { buildTutorPrompt } from "./prompts/index";
+import type { TutorQuestionContext, TutorAnswerVisibility } from "./types/tutor";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -58,11 +60,19 @@ export async function getGroqRecommendation(items: RecommendationItem[]): Promis
   throw new Error("Định dạng phản hồi từ Groq không đúng.");
 }
 
-const MAX_HISTORY_MESSAGES = 6; // giới hạn để tiết kiệm token, chỉ giữ vài lượt hỏi-đáp gần nhất
+const MAX_HISTORY_MESSAGES = 6;
+
+// Dịch TutorMode cũ ("learning"/"review", chữ ký public route đang dùng) sang
+// TutorAnswerVisibility mới ("hidden"/"revealed", dùng nội bộ trong Prompt Architecture).
+// Đặt việc dịch ở ĐÂY (chi tiết triển khai), không đặt ở provider.ts (lớp abstraction),
+// để provider.ts không cần biết gì về Prompt Architecture bên trong.
+function toAnswerVisibility(mode: "learning" | "review"): TutorAnswerVisibility {
+  return mode === "review" ? "revealed" : "hidden";
+}
 
 export async function askTutorGroq(
   questionContext: TutorQuestionContext,
-  mode: TutorMode,
+  mode: "learning" | "review",
   history: ChatMessage[],
   userMessage: string
 ): Promise<string> {
@@ -71,7 +81,12 @@ export async function askTutorGroq(
     throw new Error("Thiếu GROQ_API_KEY trong biến môi trường server.");
   }
 
-  const systemPrompt = buildTutorSystemPrompt(questionContext, mode);
+  const visibility = toAnswerVisibility(mode);
+
+  // screenContext mặc định "practice", reviewMeta chưa truyền — API Route hiện tại (chưa sửa
+  // ở Bước 2 theo đúng phạm vi) không gửi các field này. Sẽ bổ sung ở Bước 3.
+  const systemPrompt = buildTutorPrompt(questionContext, visibility, "practice");
+
   const trimmedHistory = history.slice(-MAX_HISTORY_MESSAGES);
 
   const response = await fetch(GROQ_URL, {

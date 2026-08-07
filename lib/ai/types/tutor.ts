@@ -7,11 +7,13 @@ export type TutorAnswerVisibility = "hidden" | "revealed";
 // KHÔNG ảnh hưởng bảo mật.
 export type TutorScreenContext = "practice" | "review" | "smart_review";
 
+import type { ReviewSource } from "./common";
+
 // Dữ liệu Scheduler — chỉ có giá trị khi screenContext = "smart_review".
 export type ReviewMeta = {
   intervalDays: number;
   reviewCount: number;
-  source: string;
+  source: ReviewSource;
   daysSinceLastReview: number | null;
 };
 
