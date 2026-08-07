@@ -1,7 +1,7 @@
 import { buildRecommendationPrompt } from "./prompts";
 import type { RecommendationItem, RecommendationResult } from "./prompts";
 import { buildTutorPrompt } from "./prompts/index";
-import type { TutorQuestionContext, TutorAnswerVisibility } from "./types/tutor";
+import type { TutorQuestionContext, TutorAnswerVisibility, TutorScreenContext, ReviewMeta } from "./types/tutor";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -74,7 +74,9 @@ export async function askTutorGroq(
   questionContext: TutorQuestionContext,
   mode: "learning" | "review",
   history: ChatMessage[],
-  userMessage: string
+  userMessage: string,
+  screenContext: TutorScreenContext = "practice",
+  reviewMeta?: ReviewMeta
 ): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
@@ -83,10 +85,7 @@ export async function askTutorGroq(
 
   const visibility = toAnswerVisibility(mode);
 
-  // screenContext mặc định "practice", reviewMeta chưa truyền — API Route hiện tại (chưa sửa
-  // ở Bước 2 theo đúng phạm vi) không gửi các field này. Sẽ bổ sung ở Bước 3.
-  const systemPrompt = buildTutorPrompt(questionContext, visibility, "practice");
-
+  const systemPrompt = buildTutorPrompt(questionContext, visibility, screenContext, reviewMeta);
   const trimmedHistory = history.slice(-MAX_HISTORY_MESSAGES);
 
   const response = await fetch(GROQ_URL, {

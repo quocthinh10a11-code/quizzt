@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { askTutor } from "@/lib/ai/provider";
-import type { TutorQuestionContext, ChatMessage, TutorMode } from "@/lib/ai/provider";
+import type { TutorQuestionContext, ChatMessage } from "@/lib/ai/provider";
+import type { TutorMode } from "@/lib/ai/provider";
+import type { TutorScreenContext, ReviewMeta } from "@/lib/ai/types/tutor";
 
 const MAX_MESSAGE_LENGTH = 500;
+const VALID_SCREEN_CONTEXTS: TutorScreenContext[] = ["practice", "review", "smart_review"];
+const VALID_REVIEW_SOURCES = ["wrong_answer", "bookmark", "note", "manual"];
+
+// Kiểm tra shape của reviewMeta gửi từ client — không tin bất kỳ field nào chưa qua validate.
+function isValidReviewMeta(value: unknown): value is ReviewMeta {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.intervalDays === "number" &&
+    typeof v.reviewCount === "number" &&
+    typeof v.source === "string" &&
+    VALID_REVIEW_SOURCES.includes(v.source) &&
+    (v.daysSinceLastReview === null || typeof v.daysSinceLastReview === "number")
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,22 +40,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Câu hỏi tối đa ${MAX_MESSAGE_LENGTH} ký tự.` }, { status: 400 });
     }
 
-    // Backend quyết định mode dựa trên "submitted", KHÔNG dựa trên field "mode" tự ý gửi từ client.
+    // --- screenContext: optional, mặc định "practice" để backward compatible ---
+    const rawScreenContext = body.screenContext;
+    let screenContext: TutorScreenContext = "practice";
+    if (rawScreenContext !== undefined) {
+      if (typeof rawScreenContext !== "string" || !VALID_SCREEN_CONTEXTS.includes(rawScreenContext as TutorScreenContext)) {
+        return NextResponse.json(
+          { error: `screenContext không hợp lệ. Chỉ chấp nhận: ${VALID_SCREEN_CONTEXTS.join(", ")}` },
+          { status: 400 }
+        );
+      }
+      screenContext = rawScreenContext as TutorScreenContext;
+    }
+
+    // --- reviewMeta: optional, chỉ dùng khi screenContext = "smart_review" ---
+    let reviewMeta: ReviewMeta | undefined = undefined;
+    if (body.reviewMeta !== undefined) {
+      if (screenContext !== "smart_review") {
+        // Client gửi reviewMeta nhưng screenContext không phải smart_review -> bỏ qua, không dùng.
+        reviewMeta = undefined;
+      } else {
+        if (!isValidReviewMeta(body.reviewMeta)) {
+          return NextResponse.json({ error: "reviewMeta không đúng định dạng." }, { status: 400 });
+        }
+        reviewMeta = body.reviewMeta;
+      }
+    }
+
+    // Backend quyết định mode (Answer Visibility) dựa trên "submitted", KHÔNG dựa trên field
+    // "mode"/"visibility" tự ý gửi từ client. Nguyên tắc bảo mật này giữ nguyên từ các bước trước.
     const mode: TutorMode = submitted ? "review" : "learning";
 
-    // correctIndex chỉ được đưa vào prompt khi mode = "review".
-    // Ở mode "learning", dù client có gửi correctIndex lên hay không, backend vẫn loại bỏ,
-    // để prompt injection từ phía client không thể ép AI tiết lộ đáp án sớm.
     const questionContext: TutorQuestionContext = {
       content: String(rawContext.content),
       options: rawContext.options.map((o: unknown) => String(o)),
-      correctIndex: mode === "review" && typeof rawContext.correctIndex === "number"
-        ? rawContext.correctIndex
-        : undefined,
+      correctIndex:
+        mode === "review" && typeof rawContext.correctIndex === "number" ? rawContext.correctIndex : undefined,
     };
 
-    const reply = await askTutor(questionContext, mode, history, userMessage.trim());
-    return NextResponse.json({ reply, mode });
+    const reply = await askTutor(questionContext, mode, history, userMessage.trim(), screenContext, reviewMeta);
+    return NextResponse.json({ reply, mode, screenContext });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Lỗi không xác định.";
     return NextResponse.json({ error: message }, { status: 500 });

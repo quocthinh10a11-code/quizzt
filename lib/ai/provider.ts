@@ -1,7 +1,7 @@
 import { getGroqRecommendation, askTutorGroq } from "./groq";
 import type { ChatMessage } from "./groq";
 import type { RecommendationItem, RecommendationResult } from "./prompts";
-import type { TutorQuestionContext } from "./types/tutor";
+import type { TutorQuestionContext, TutorScreenContext, ReviewMeta } from "./types/tutor";
 
 // Lớp trừu tượng duy nhất mà API route gọi tới. KHÔNG biết gì về Prompt Architecture
 // bên trong groq.ts — chỉ chuyển tiếp lời gọi. Đổi provider (Gemini/OpenAI) sau này
@@ -16,9 +16,11 @@ export async function askTutor(
   questionContext: TutorQuestionContext,
   mode: TutorMode,
   history: ChatMessage[],
-  userMessage: string
+  userMessage: string,
+  screenContext: TutorScreenContext = "practice",
+  reviewMeta?: ReviewMeta
 ): Promise<string> {
-  return askTutorGroq(questionContext, mode, history, userMessage);
+  return askTutorGroq(questionContext, mode, history, userMessage, screenContext, reviewMeta);
 }
 
 export type { RecommendationItem, RecommendationResult, TutorQuestionContext, ChatMessage };
