@@ -1,6 +1,11 @@
 import { getGroqRecommendation, askTutorGroq } from "./groq";
 import type { ChatMessage } from "./groq";
-import type { RecommendationItem, RecommendationResult, TutorQuestionContext } from "./prompts";
+import type {
+  RecommendationItem,
+  RecommendationResult,
+  TutorQuestionContext,
+  TutorMode,
+} from "./prompts";
 
 // Lớp trừu tượng duy nhất mà API route gọi tới. Sau này muốn đổi provider,
 // chỉ sửa hàm bên trong file này — không đụng route hay UI.
@@ -11,10 +16,11 @@ export async function getReviewRecommendation(items: RecommendationItem[]): Prom
 
 export async function askTutor(
   questionContext: TutorQuestionContext,
+  mode: TutorMode,
   history: ChatMessage[],
   userMessage: string
 ): Promise<string> {
-  return askTutorGroq(questionContext, history, userMessage);
+  return askTutorGroq(questionContext, mode, history, userMessage);
 }
 
-export type { RecommendationItem, RecommendationResult, TutorQuestionContext, ChatMessage };
+export type { RecommendationItem, RecommendationResult, TutorQuestionContext, TutorMode, ChatMessage };

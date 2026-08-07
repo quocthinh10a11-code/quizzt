@@ -1,5 +1,5 @@
 import { buildRecommendationPrompt, buildTutorSystemPrompt } from "./prompts";
-import type { RecommendationItem, RecommendationResult, TutorQuestionContext } from "./prompts";
+import type { RecommendationItem, RecommendationResult, TutorQuestionContext, TutorMode } from "./prompts";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -62,6 +62,7 @@ const MAX_HISTORY_MESSAGES = 6; // giới hạn để tiết kiệm token, chỉ
 
 export async function askTutorGroq(
   questionContext: TutorQuestionContext,
+  mode: TutorMode,
   history: ChatMessage[],
   userMessage: string
 ): Promise<string> {
@@ -70,7 +71,7 @@ export async function askTutorGroq(
     throw new Error("Thiếu GROQ_API_KEY trong biến môi trường server.");
   }
 
-  const systemPrompt = buildTutorSystemPrompt(questionContext);
+  const systemPrompt = buildTutorSystemPrompt(questionContext, mode);
   const trimmedHistory = history.slice(-MAX_HISTORY_MESSAGES);
 
   const response = await fetch(GROQ_URL, {

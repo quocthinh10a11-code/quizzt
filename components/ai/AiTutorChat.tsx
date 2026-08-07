@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import AIMessage from "./AIMessage";
 
 type Message = {
   role: "user" | "assistant" | "divider";
@@ -16,11 +17,13 @@ type Props = {
     correctIndex: number;
   };
   // Đổi giá trị này (ví dụ questionId) mỗi khi sang câu khác.
-  // Lịch sử KHÔNG bị xoá, chỉ chèn 1 dòng phân cách để đánh dấu đã chuyển ngữ cảnh.
   resetKey: string | number;
+  // true nếu học sinh đã nộp bài / đang xem lại đáp án (chế độ Review).
+  // false nếu đang làm bài dở (chế độ Learning) — AI sẽ KHÔNG được cấp đáp án đúng.
+  submitted: boolean;
 };
 
-export default function AiTutorChat({ questionContext, resetKey }: Props) {
+export default function AiTutorChat({ questionContext, resetKey, submitted }: Props) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -30,7 +33,6 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
   const isFirstRender = useRef(true);
   const prevResetKey = useRef(resetKey);
 
-  // Sang câu hỏi khác -> chèn dòng phân cách, KHÔNG xoá lịch sử cũ
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -61,7 +63,6 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
     setInput("");
     setLoading(true);
 
-    // Chỉ gửi tin nhắn thật (user/assistant) cho API, bỏ qua dòng phân cách hiển thị
     const apiHistory = messages
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
@@ -71,7 +72,10 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          questionContext,
+          questionContext: submitted
+            ? questionContext
+            : { content: questionContext.content, options: questionContext.options },
+          submitted,
           history: apiHistory,
           userMessage: trimmed,
         }),
@@ -112,11 +116,16 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-30 w-[340px] max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-2xl flex flex-col overflow-hidden animate-fade-up">
+    <div className="fixed bottom-6 right-6 z-30 w-[380px] max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-2xl flex flex-col overflow-hidden animate-fade-up">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-primary/5">
         <div className="flex items-center gap-2">
           <MessageCircle size={16} className="text-primary" />
           <span className="text-sm font-semibold text-gray-900 dark:text-white">Hỏi AI về câu này</span>
+          {!submitted && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
+              Chế độ gợi mở
+            </span>
+          )}
         </div>
         <button
           onClick={() => setOpen(false)}
@@ -127,10 +136,11 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 max-h-80 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+      <div ref={scrollRef} className="flex-1 max-h-96 overflow-y-auto px-4 py-3 flex flex-col gap-3">
         {messages.length === 0 && (
           <p className="text-xs text-gray-400 dark:text-gray-500 italic">
-            Hỏi AI bất cứ điều gì về câu hỏi đang xem — ví dụ: &quot;Tại sao đáp án B sai?&quot;, &quot;Giải thích khái niệm này giúp mình&quot;.
+            Hỏi AI bất cứ điều gì về câu hỏi đang xem — ví dụ: &quot;Giải thích khái niệm này giúp mình&quot;.
+            {!submitted && " AI sẽ gợi mở tư duy trước, chưa đưa đáp án ngay."}
           </p>
         )}
 
@@ -145,13 +155,13 @@ export default function AiTutorChat({ questionContext, resetKey }: Props) {
             <div
               key={i}
               className={cn(
-                "max-w-[85%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap break-words",
+                "max-w-[90%] px-3 py-2 rounded-lg",
                 m.role === "user"
-                  ? "self-end bg-primary text-white"
-                  : "self-start bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                  ? "self-end bg-primary text-white text-sm whitespace-pre-wrap break-words"
+                  : "self-start bg-gray-100 dark:bg-gray-800"
               )}
             >
-              {m.content}
+              {m.role === "assistant" ? <AIMessage content={m.content} /> : m.content}
             </div>
           )
         )}

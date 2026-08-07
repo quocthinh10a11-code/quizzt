@@ -575,7 +575,7 @@ export default function SmartReviewPage() {
           </Button>
         </div>
       )}
-    {session.started && !session.submitted && (
+    {session.started && (
         <AiTutorChat
           questionContext={{
             content: question.content,
@@ -583,6 +583,7 @@ export default function SmartReviewPage() {
             correctIndex: question.correctIndex,
           }}
           resetKey={question.questionId}
+          submitted={session.submitted}
         />
       )}
     </div>
