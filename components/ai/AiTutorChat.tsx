@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import AIMessage from "./AIMessage";
 import QuickActions from "./QuickActions";
 import type { TutorScreenContext, ReviewMeta, QuickAction } from "@/lib/ai/types/tutor";
+import { supabase } from "@/lib/supabase";
 
 type Message = {
   role: "user" | "assistant" | "divider";
@@ -99,9 +100,23 @@ export default function AiTutorChat({
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     try {
+      // Lấy access token hiện tại để route xác thực đúng người gọi (Bước 8: Rate Limit
+      // theo user cần biết chính xác ai đang gọi, không tin userId tự gửi từ client).
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setError("Bạn cần đăng nhập để sử dụng tính năng này.");
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch("/api/ai/ask", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           questionContext: submitted
             ? questionContext

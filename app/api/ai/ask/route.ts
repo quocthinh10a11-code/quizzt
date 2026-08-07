@@ -3,8 +3,11 @@ import { askTutor } from "@/lib/ai/provider";
 import type { TutorQuestionContext, ChatMessage } from "@/lib/ai/provider";
 import type { TutorMode } from "@/lib/ai/provider";
 import type { TutorScreenContext, ReviewMeta } from "@/lib/ai/types/tutor";
+import { getAuthenticatedContext } from "@/lib/ai/auth";
+import { checkAndRecordRateLimit } from "@/lib/ai/rateLimit";
 
 const MAX_MESSAGE_LENGTH = 500;
+const ASK_RATE_LIMIT_PER_MINUTE = 10;
 const VALID_SCREEN_CONTEXTS: TutorScreenContext[] = ["practice", "review", "smart_review"];
 const VALID_REVIEW_SOURCES = ["wrong_answer", "bookmark", "note", "manual"];
 
@@ -23,6 +26,27 @@ function isValidReviewMeta(value: unknown): value is ReviewMeta {
 
 export async function POST(req: NextRequest) {
   try {
+    // Xác thực người gọi TRƯỚC khi làm bất kỳ việc gì khác. userId chỉ được lấy
+    // từ token đã xác thực, không phải từ bất kỳ field nào trong request body.
+    const authContext = await getAuthenticatedContext(req);
+    if (!authContext) {
+      return NextResponse.json({ error: "Bạn cần đăng nhập để sử dụng tính năng này." }, { status: 401 });
+    }
+    const { supabase: authedSupabase, userId } = authContext;
+
+    const rateLimitResult = await checkAndRecordRateLimit(
+      authedSupabase,
+      userId,
+      "ask",
+      ASK_RATE_LIMIT_PER_MINUTE
+    );
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: `Bạn đã hỏi quá nhanh. Vui lòng đợi ${rateLimitResult.retryAfterSeconds} giây rồi thử lại.` },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
 
     const rawContext = body.questionContext;

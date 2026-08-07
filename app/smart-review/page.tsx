@@ -22,6 +22,7 @@ import {
 } from "@/lib/reviewQueue";
 import { Sparkles } from "lucide-react";
 import AiTutorChat from "@/components/ai/AiTutorChat";
+import { supabase } from "@/lib/supabase";
 
 type AiReason = { priority: number; reason: string };
 
@@ -172,9 +173,21 @@ export default function SmartReviewPage() {
     }));
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setAiError("Bạn cần đăng nhập để sử dụng tính năng này.");
+        setAiLoading(false);
+        return;
+      }
+
       const res = await fetch("/api/ai/recommend", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ items }),
       });
       const data = await res.json();
