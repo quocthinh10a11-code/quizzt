@@ -29,6 +29,12 @@ type Props = {
   // Component tự loại bỏ field này khỏi request nếu screenContext khác "smart_review",
   // không hardcode "smart_review" ở đâu trong logic — chỉ so sánh với prop được truyền vào.
   reviewMeta?: ReviewMeta;
+  // Optional, mặc định false. Khi true, panel chat tự mở ngay khi component được mount,
+  // thay vì chờ người dùng bấm nút nổi. Dùng cho trường hợp nơi gọi (ví dụ Review Screen)
+  // đã có 1 nút trigger riêng bên ngoài component (per-question), và chỉ mount đúng 1
+  // instance AiTutorChat tại 1 thời điểm — tránh nhiều nút nổi "Hỏi AI" chồng đè lên nhau
+  // nếu mount nhiều instance cùng lúc (mỗi instance mặc định fixed ở cùng 1 vị trí góc màn hình).
+  autoOpen?: boolean;
 };
 
 export default function AiTutorChat({
@@ -37,8 +43,9 @@ export default function AiTutorChat({
   submitted,
   screenContext = "practice",
   reviewMeta,
+  autoOpen = false,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

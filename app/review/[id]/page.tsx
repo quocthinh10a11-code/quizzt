@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Check, X, ListPlus, CheckCircle } from "lucide-react";
+import { Check, X, ListPlus, CheckCircle, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import Card from "@/components/ui/Card";
@@ -10,6 +10,7 @@ import Button from "@/components/ui/Button";
 import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 import { addToReviewQueue, getQuestionIdsInQueue } from "@/lib/reviewQueue";
+import AiTutorChat from "@/components/ai/AiTutorChat";
 type StoredQuestion = {
   id: number;
   content: string;
@@ -32,6 +33,9 @@ export default function ReviewPage() {
   const [loaded, setLoaded] = useState(false);
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [reviewQueueIds, setReviewQueueIds] = useState<Set<number>>(new Set());
+  // Câu hỏi đang được chọn để hỏi AI. null = chưa mở chat cho câu nào.
+  // Chỉ 1 AiTutorChat được mount tại 1 thời điểm (xem giải thích trong Impact Analysis).
+  const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
   useEffect(() => {
     const raw = localStorage.getItem(`quizResult:${quizId}`);
     if (raw) {
@@ -155,6 +159,13 @@ export default function ReviewPage() {
                       }}
                     />
                   )}
+                  <button
+                    onClick={() => setActiveQuestionId(question.id)}
+                    title="Hỏi AI về câu này"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                  >
+                    <MessageCircle size={18} />
+                  </button>
                 </div>
               </div>
 
@@ -200,6 +211,25 @@ export default function ReviewPage() {
           Làm lại bộ đề
         </Button>
       </div>
+
+      {activeQuestionId !== null && (() => {
+        const activeQuestion = result.questions.find((q) => q.id === activeQuestionId);
+        if (!activeQuestion) return null;
+        return (
+          <AiTutorChat
+            key={activeQuestionId}
+            questionContext={{
+              content: activeQuestion.content,
+              options: activeQuestion.options,
+              correctIndex: activeQuestion.correct_index,
+            }}
+            resetKey={activeQuestion.id}
+            submitted={true}
+            screenContext="review"
+            autoOpen={true}
+          />
+        );
+      })()}
     </div>
   );
 }
