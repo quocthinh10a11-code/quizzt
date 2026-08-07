@@ -20,5 +20,13 @@ export type ReviewMeta = {
 export type TutorQuestionContext = {
   content: string;
   options: string[];
-  correctIndex?: number; // chỉ có giá trị khi visibility = "revealed", do backend gán
+  correctIndex?: number;
+};
+
+// Một nút gợi ý trong AI Tutor. "label" hiển thị trên nút, "prompt" là nội dung
+// câu hỏi thật sự được gửi đi khi bấm — tách riêng để label ngắn gọn trong khi
+// prompt gửi cho AI có thể đầy đủ ngữ cảnh hơn.
+export type QuickAction = {
+  label: string;
+  prompt: string;
 };

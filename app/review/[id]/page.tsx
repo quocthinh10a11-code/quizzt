@@ -11,6 +11,7 @@ import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 import { addToReviewQueue, getQuestionIdsInQueue } from "@/lib/reviewQueue";
 import AiTutorChat from "@/components/ai/AiTutorChat";
+import { buildQuickActions } from "@/lib/ai/quickActions";
 type StoredQuestion = {
   id: number;
   content: string;
@@ -215,6 +216,8 @@ export default function ReviewPage() {
       {activeQuestionId !== null && (() => {
         const activeQuestion = result.questions.find((q) => q.id === activeQuestionId);
         if (!activeQuestion) return null;
+        const activeIndex = result.questions.findIndex((q) => q.id === activeQuestionId);
+        const wasCorrect = result.answers[activeIndex] === activeQuestion.correct_index;
         return (
           <AiTutorChat
             key={activeQuestionId}
@@ -227,6 +230,7 @@ export default function ReviewPage() {
             submitted={true}
             screenContext="review"
             autoOpen={true}
+            quickActions={buildQuickActions({ screenContext: "review", submitted: true, wasCorrect })}
           />
         );
       })()}

@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSession";
 import { addToReviewQueue } from "@/lib/reviewQueue";
 import AiTutorChat from "@/components/ai/AiTutorChat";
+import { buildQuickActions } from "@/lib/ai/quickActions";
 const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
 const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
   easy: "success",
@@ -348,6 +349,13 @@ export default function PracticePage() {
           resetKey={question.id}
           submitted={session.submitted}
           screenContext="practice"
+          quickActions={buildQuickActions({
+            screenContext: "practice",
+            submitted: session.submitted,
+            wasCorrect: session.submitted
+              ? session.answers[session.currentIndex] === question.correct_index
+              : undefined,
+          })}
         />
       )}
     </div>

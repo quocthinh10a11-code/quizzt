@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AIMessage from "./AIMessage";
-import type { TutorScreenContext, ReviewMeta } from "@/lib/ai/types/tutor";
+import QuickActions from "./QuickActions";
+import type { TutorScreenContext, ReviewMeta, QuickAction } from "@/lib/ai/types/tutor";
 
 type Message = {
   role: "user" | "assistant" | "divider";
@@ -35,6 +36,11 @@ type Props = {
   // instance AiTutorChat tại 1 thời điểm — tránh nhiều nút nổi "Hỏi AI" chồng đè lên nhau
   // nếu mount nhiều instance cùng lúc (mỗi instance mặc định fixed ở cùng 1 vị trí góc màn hình).
   autoOpen?: boolean;
+  // Danh sách nút gợi ý, hiển thị khi chưa có tin nhắn nào trong hội thoại.
+  // Component KHÔNG tự quyết định nội dung — dữ liệu này do trang gọi tự tính
+  // bằng helper dùng chung buildQuickActions() rồi truyền vào. Mặc định [] để
+  // backward compatible với nơi gọi chưa cập nhật.
+  quickActions?: QuickAction[];
 };
 
 export default function AiTutorChat({
@@ -44,6 +50,7 @@ export default function AiTutorChat({
   screenContext = "practice",
   reviewMeta,
   autoOpen = false,
+  quickActions = [],
 }: Props) {
   const [open, setOpen] = useState(autoOpen);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -74,8 +81,11 @@ export default function AiTutorChat({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
-  async function handleSend() {
-    const trimmed = input.trim();
+  // Tách phần gửi tin nhắn thật sự (sendMessage) khỏi việc đọc từ ô input (handleSend),
+  // để Quick Actions gửi thẳng nội dung mẫu KHÔNG cần đi qua state `input` — tránh vấn đề
+  // bất đồng bộ khi vừa setInput vừa muốn gửi ngay trong cùng 1 lần bấm.
+  async function sendMessage(text: string) {
+    const trimmed = text.trim();
     if (!trimmed || loading) return;
 
     setError("");
@@ -100,9 +110,6 @@ export default function AiTutorChat({
           history: apiHistory,
           userMessage: trimmed,
           screenContext,
-          // Chỉ gửi reviewMeta khi đúng screenContext, đúng contract Bước 3 —
-          // tránh gửi field thừa khi không cần (route sẽ bỏ qua nếu có, nhưng
-          // không gửi ngay từ đầu vẫn sạch hơn).
           ...(screenContext === "smart_review" && reviewMeta ? { reviewMeta } : {}),
         }),
       });
@@ -120,6 +127,14 @@ export default function AiTutorChat({
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSend() {
+    sendMessage(input);
+  }
+
+  function handleQuickAction(action: QuickAction) {
+    sendMessage(action.prompt);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -201,6 +216,10 @@ export default function AiTutorChat({
 
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>
+
+      {messages.length === 0 && quickActions.length > 0 && (
+        <QuickActions actions={quickActions} onSelect={handleQuickAction} disabled={loading} />
+      )}
 
       <div className="flex items-center gap-2 p-3 border-t border-gray-100 dark:border-gray-800">
         <input
