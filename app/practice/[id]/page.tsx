@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSession";
 import { addToReviewQueue } from "@/lib/reviewQueue";
+import AiTutorChat from "@/components/ai/AiTutorChat";
 const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
 const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
   easy: "success",
@@ -335,6 +336,19 @@ export default function PracticePage() {
             Xem lại đáp án
           </Button>
         </Card>
+      )}
+
+      {session.started && (
+        <AiTutorChat
+          questionContext={{
+            content: question.content,
+            options: question.options,
+            correctIndex: question.correct_index,
+          }}
+          resetKey={question.id}
+          submitted={session.submitted}
+          screenContext="practice"
+        />
       )}
     </div>
   );
