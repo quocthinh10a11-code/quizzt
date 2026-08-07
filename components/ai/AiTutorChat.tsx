@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AIMessage from "./AIMessage";
+import type { TutorScreenContext, ReviewMeta } from "@/lib/ai/types/tutor";
 
 type Message = {
   role: "user" | "assistant" | "divider";
@@ -21,9 +22,22 @@ type Props = {
   // true nếu học sinh đã nộp bài / đang xem lại đáp án (chế độ Review).
   // false nếu đang làm bài dở (chế độ Learning) — AI sẽ KHÔNG được cấp đáp án đúng.
   submitted: boolean;
+  // Màn hình đang gọi component này. Optional để tương thích ngược với nơi gọi
+  // chưa cập nhật — mặc định "practice" nếu không truyền.
+  screenContext?: TutorScreenContext;
+  // Dữ liệu Spaced Repetition, chỉ có ý nghĩa khi screenContext = "smart_review".
+  // Component tự loại bỏ field này khỏi request nếu screenContext khác "smart_review",
+  // không hardcode "smart_review" ở đâu trong logic — chỉ so sánh với prop được truyền vào.
+  reviewMeta?: ReviewMeta;
 };
 
-export default function AiTutorChat({ questionContext, resetKey, submitted }: Props) {
+export default function AiTutorChat({
+  questionContext,
+  resetKey,
+  submitted,
+  screenContext = "practice",
+  reviewMeta,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -78,6 +92,11 @@ export default function AiTutorChat({ questionContext, resetKey, submitted }: Pr
           submitted,
           history: apiHistory,
           userMessage: trimmed,
+          screenContext,
+          // Chỉ gửi reviewMeta khi đúng screenContext, đúng contract Bước 3 —
+          // tránh gửi field thừa khi không cần (route sẽ bỏ qua nếu có, nhưng
+          // không gửi ngay từ đầu vẫn sạch hơn).
+          ...(screenContext === "smart_review" && reviewMeta ? { reviewMeta } : {}),
         }),
       });
       const data = await res.json();
