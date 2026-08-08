@@ -24,6 +24,7 @@ import { Sparkles } from "lucide-react";
 import AiTutorChat from "@/components/ai/AiTutorChat";
 import { supabase } from "@/lib/supabase";
 import { buildQuickActions } from "@/lib/ai/quickActions";
+import type { ReviewSource } from "@/lib/ai/types/common";
 
 type AiReason = { priority: number; reason: string };
 
@@ -599,13 +600,16 @@ export default function SmartReviewPage() {
           resetKey={question.questionId}
           submitted={session.submitted}
           screenContext="smart_review"
-          reviewMeta={{
+reviewMeta={{
             intervalDays: question.intervalDays,
             reviewCount: question.reviewCount,
-            source: question.source,
+            // question.source có kiểu string ở lib/reviewQueue.ts (chưa dùng union type
+            // ReviewSource), nhưng giá trị thực tế luôn hợp lệ nhờ CHECK constraint đã có
+            // ở tầng Postgres (bảng review_queue, cột source, từ Phase 4) — ép kiểu an toàn
+            // ở đây, không sửa lib/reviewQueue.ts vì ngoài phạm vi Bước 9 (Minimal Change).
+            source: question.source as ReviewSource,
             daysSinceLastReview: daysBetween(question.lastReviewedAt),
-          }}
-          quickActions={buildQuickActions({
+          }}          quickActions={buildQuickActions({
             screenContext: "smart_review",
             submitted: session.submitted,
             wasCorrect: session.submitted
