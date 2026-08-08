@@ -23,6 +23,7 @@ import {
 import { Sparkles } from "lucide-react";
 import AiTutorChat from "@/components/ai/AiTutorChat";
 import { supabase } from "@/lib/supabase";
+import { buildQuickActions } from "@/lib/ai/quickActions";
 
 type AiReason = { priority: number; reason: string };
 
@@ -597,6 +598,20 @@ export default function SmartReviewPage() {
           }}
           resetKey={question.questionId}
           submitted={session.submitted}
+          screenContext="smart_review"
+          reviewMeta={{
+            intervalDays: question.intervalDays,
+            reviewCount: question.reviewCount,
+            source: question.source,
+            daysSinceLastReview: daysBetween(question.lastReviewedAt),
+          }}
+          quickActions={buildQuickActions({
+            screenContext: "smart_review",
+            submitted: session.submitted,
+            wasCorrect: session.submitted
+              ? session.answers[session.currentIndex] === question.correctIndex
+              : undefined,
+          })}
         />
       )}
     </div>
