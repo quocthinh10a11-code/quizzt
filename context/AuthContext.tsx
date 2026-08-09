@@ -35,16 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Kiểm tra ngay lúc vào app: đã có phiên đăng nhập nào còn hiệu lực không
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id);
-      }
+      if (session?.user) loadProfile(session.user.id);
       setLoading(false);
     });
 
-    // Lắng nghe MỌI thay đổi đăng nhập (login, logout...) xảy ra sau đó
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
@@ -62,7 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signOut() {
-    await supabase.auth.signOut();
+    // Chỉ đăng xuất phiên trên thiết bị hiện tại để việc đổi tài khoản
+    // không vô tình đăng xuất người dùng khỏi các thiết bị khác.
+    await supabase.auth.signOut({ scope: "local" });
   }
 
   return (
