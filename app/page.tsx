@@ -113,7 +113,7 @@ export default function HomePage() {
               </div>
 
               <Link
-                href="/quizzes/new"
+                href="/quizzes/create"
                 className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary-hover hover:-translate-y-px transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
               >
                 <Plus size={17} />
@@ -163,7 +163,7 @@ export default function HomePage() {
 
               {!search && (
                 <Link
-                  href="/quizzes/new"
+                  href="/quizzes/create"
                   className="mt-6 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary-hover transition-colors"
                 >
                   <Plus size={17} />
