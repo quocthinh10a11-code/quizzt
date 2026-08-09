@@ -12,7 +12,7 @@ const RECOMMEND_RATE_LIMIT_PER_MINUTE = 5;
 // nếu client cố gửi kèm wrongCount/... trong body, chúng sẽ bị bỏ qua vì type
 // này không có các field đó, và bước enrich bên dưới luôn ghi đè bằng dữ liệu
 // server tự truy vấn.
-type RequestRecommendationItem = Omit
+type RequestRecommendationItem = Omit<
   RecommendationItem,
   "wrongCount" | "correctCount" | "totalAttemptCount" | "lastAttemptAt"
 >;

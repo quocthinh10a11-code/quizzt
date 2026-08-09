@@ -47,7 +47,7 @@ export async function getLearningHistoryForQuestions(
     return result;
   }
 
-  const grouped = new Map
+  const grouped = new Map<
     number,
     { wrong: number; correct: number; total: number; lastAt: string | null }
   >();
