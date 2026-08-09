@@ -87,7 +87,7 @@ export type DueReviewQuestion = {
   quizId: number | null;
   quizTitle: string;
   lastReviewedAt: string | null;
-  source: string;
+  source: ReviewSource;
 };
 
 // Lấy các câu đã đến hạn ôn hôm nay (next_review_date <= hôm nay)
@@ -120,7 +120,7 @@ export async function getDueReviewQuestions(userId: string): Promise<DueReviewQu
         quizId: q.quiz_id,
         quizTitle: q.quizzes?.title ?? "Bộ đề không xác định",
         lastReviewedAt: row.last_reviewed_at,
-        source: row.source,
+        source: row.source as ReviewSource,
       };
     })
     .filter(Boolean) as DueReviewQuestion[];
