@@ -12,7 +12,7 @@ export function getRememberedAccounts(): RememberedAccount[] {
   if (!canUseStorage()) return [];
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
 
     const parsed = JSON.parse(raw);
@@ -41,7 +41,7 @@ export function rememberAccount(email: string) {
     (account) => account.email.toLowerCase() !== normalized
   );
 
-  window.localStorage.setItem(
+  window.sessionStorage.setItem(
     STORAGE_KEY,
     JSON.stringify([{ email: normalized }, ...accounts].slice(0, 5))
   );
@@ -55,5 +55,5 @@ export function forgetAccount(email: string) {
     (account) => account.email.toLowerCase() !== normalized
   );
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
 }
