@@ -2,13 +2,26 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  Sun,
+  Moon,
+  ChevronDown,
+  LogOut,
+  Settings,
+  Shield,
+  Menu,
+  X,
+  Layers,
+  Bookmark,
+  BookOpen,
+  History,
+  BarChart3,
+  Brain,
+  Sparkles,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { getDueReviewCount } from "@/lib/reviewQueue";
-import {
-  Sun, Moon, ChevronDown, LogOut, Settings, Shield, Menu, X,
-  Layers, Bookmark, BookOpen, History, BarChart3, Brain,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Navbar() {
@@ -19,20 +32,32 @@ export default function Navbar() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const reviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setDropdownOpen(false);
       }
-      if (reviewRef.current && !reviewRef.current.contains(e.target as Node)) {
+
+      if (
+        reviewRef.current &&
+        !reviewRef.current.contains(e.target as Node)
+      ) {
         setReviewOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -40,310 +65,428 @@ export default function Navbar() {
       setDueCount(0);
       return;
     }
+
     getDueReviewCount(user.id).then(setDueCount);
   }, [user?.id]);
 
-  const initial = (profile?.username ?? user?.email ?? "?").charAt(0).toUpperCase();
+  const initial = (profile?.username ?? user?.email ?? "?")
+    .charAt(0)
+    .toUpperCase();
+
+  function closeMobileMenu() {
+    setMobileOpen(false);
+  }
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-black/80 backdrop-blur-md">
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-primary shrink-0">
-            Quizzt
-          </Link>
-          {user && (
+    <nav className="sticky top-0 z-40 border-b border-border/80 bg-surface/90 backdrop-blur-xl supports-[backdrop-filter]:bg-surface/75">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="h-[68px] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-7 min-w-0">
             <Link
-              href="/quizzes"
-              className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+              href="/"
+              onClick={closeMobileMenu}
+              className="group flex items-center gap-2.5 shrink-0 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
+              aria-label="Quizzt - Trang chủ"
             >
-              <Layers size={15} />
-              Bộ đề của bạn
+              <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
+                <Sparkles size={18} strokeWidth={2.2} />
+              </span>
+              <span className="text-[19px] font-bold tracking-tight text-foreground">
+                Quizzt
+              </span>
             </Link>
-          )}
-          {user && (
-            <Link
-              href="/subjects"
-              className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
-            >
-              <BookOpen size={15} />
-              Môn học
-            </Link>
-          )}
-          {user && (
-            <Link
-              href="/stats"
-              className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
-            >
-              <BarChart3 size={15} />
-              Thống kê
-            </Link>
-          )}
-          {user && (
-            <Link
-              href="/history"
-              className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
-            >
-              <History size={15} />
-              Lịch sử
-            </Link>
-          )}
-        </div>
 
-        {/* Desktop */}
-        <div className="hidden sm:flex items-center gap-2">
-          {user && (
-            <div className="relative" ref={reviewRef}>
-              <button
-                onClick={() => setReviewOpen((v) => !v)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-                  dueCount > 0
-                    ? "text-primary bg-primary/10 hover:bg-primary/15"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            {user && (
+              <div className="hidden lg:flex items-center gap-1">
+                <Link
+                  href="/quizzes"
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+                >
+                  <Layers size={16} className="text-muted group-hover:text-primary transition-colors" />
+                  Bộ đề
+                </Link>
+                <Link
+                  href="/subjects"
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+                >
+                  <BookOpen size={16} className="text-muted group-hover:text-primary transition-colors" />
+                  Môn học
+                </Link>
+                <Link
+                  href="/stats"
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+                >
+                  <BarChart3 size={16} className="text-muted group-hover:text-primary transition-colors" />
+                  Thống kê
+                </Link>
+                <Link
+                  href="/history"
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-colors"
+                >
+                  <History size={16} className="text-muted group-hover:text-primary transition-colors" />
+                  Lịch sử
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+            {user && (
+              <div className="relative" ref={reviewRef}>
+                <button
+                  onClick={() => setReviewOpen((v) => !v)}
+                  aria-expanded={reviewOpen}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15",
+                    dueCount > 0
+                      ? "text-primary bg-primary-soft hover:bg-primary/15"
+                      : "text-muted hover:text-foreground hover:bg-surface-muted"
+                  )}
+                >
+                  <Brain size={16} />
+                  <span>Ôn tập</span>
+                  {dueCount > 0 && (
+                    <span className="min-w-5 h-5 px-1 inline-flex items-center justify-center rounded-full bg-primary text-white text-[11px] font-bold">
+                      {dueCount}
+                    </span>
+                  )}
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      "transition-transform duration-200",
+                      reviewOpen && "rotate-180"
+                    )}
+                  />
+                </button>
+
+                {reviewOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-border bg-surface shadow-lg p-1.5 animate-scale-in">
+                    <Link
+                      href="/smart-review"
+                      onClick={() => setReviewOpen(false)}
+                      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-soft text-primary">
+                          <Brain size={16} />
+                        </span>
+                        <span>
+                          <span className="block font-medium">Ôn tập hôm nay</span>
+                          <span className="block text-xs text-muted mt-0.5">
+                            Ôn lại kiến thức cần nhớ
+                          </span>
+                        </span>
+                      </span>
+                      {dueCount > 0 && (
+                        <span className="min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-primary text-white text-[11px] font-bold">
+                          {dueCount}
+                        </span>
+                      )}
+                    </Link>
+
+                    <Link
+                      href="/practice/bookmarks"
+                      onClick={() => setReviewOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+                    >
+                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-muted text-muted">
+                        <Bookmark size={16} />
+                      </span>
+                      <span>
+                        <span className="block font-medium">Câu đã đánh dấu</span>
+                        <span className="block text-xs text-muted mt-0.5">
+                          Xem lại câu hỏi quan trọng
+                        </span>
+                      </span>
+                    </Link>
+
+                    <Link
+                      href="/stats"
+                      onClick={() => setReviewOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+                    >
+                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-muted text-muted">
+                        <BarChart3 size={16} />
+                      </span>
+                      <span>
+                        <span className="block font-medium">Tiến độ học tập</span>
+                        <span className="block text-xs text-muted mt-0.5">
+                          Xem điểm mạnh và điểm cần cải thiện
+                        </span>
+                      </span>
+                    </Link>
+                  </div>
                 )}
+              </div>
+            )}
+
+            {user && <div className="w-px h-7 bg-border mx-1.5" />}
+
+            <button
+              onClick={toggleTheme}
+              aria-label="Đổi giao diện sáng/tối"
+              title={theme === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-foreground hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
+            >
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {user && (
+              <Link
+                href="/setting"
+                aria-label="Cài đặt"
+                title="Cài đặt"
+                className="flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-foreground hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
               >
-                <Brain size={16} />
-                Ôn tập
+                <Settings size={18} />
+              </Link>
+            )}
+
+            {user ? (
+              <div className="relative ml-1.5" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen((v) => !v)}
+                  aria-expanded={dropdownOpen}
+                  className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border border-transparent hover:border-border hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
+                >
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-bold shadow-sm">
+                    {initial}
+                  </span>
+                  <span className="hidden md:block max-w-[110px] truncate text-sm font-medium text-foreground">
+                    {profile?.username ?? "..."}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      "text-muted transition-transform duration-200",
+                      dropdownOpen && "rotate-180"
+                    )}
+                  />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-surface shadow-lg p-1.5 animate-scale-in">
+                    <div className="px-3 py-3 mb-1 rounded-lg bg-surface-muted">
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {profile?.username ?? "Tài khoản"}
+                      </p>
+                      <p className="text-xs text-muted mt-0.5 truncate">
+                        {user.email}
+                      </p>
+                    </div>
+
+                    {profile?.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+                      >
+                        <Shield size={16} />
+                        Quản trị
+                      </Link>
+                    )}
+
+                    <Link
+                      href="/setting"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+                    >
+                      <Settings size={16} />
+                      Cài đặt
+                    </Link>
+
+                    <div className="h-px bg-border my-1" />
+
+                    <button
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        signOut();
+                      }}
+                      className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm text-danger hover:bg-danger-soft transition-colors text-left"
+                    >
+                      <LogOut size={16} />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="ml-1 inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary-hover hover:-translate-y-px transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+              >
+                Đăng nhập
+              </Link>
+            )}
+          </div>
+
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
+            aria-expanded={mobileOpen}
+            className="sm:hidden flex items-center justify-center w-10 h-10 rounded-lg text-muted hover:text-foreground hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
+          >
+            {mobileOpen ? <X size={21} /> : <Menu size={21} />}
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "sm:hidden overflow-hidden border-t border-border transition-all duration-200",
+          mobileOpen
+            ? "max-h-[42rem] opacity-100"
+            : "max-h-0 opacity-0 border-t-0"
+        )}
+      >
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          {user && (
+            <div className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-surface-muted border border-border">
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white text-sm font-bold">
+                {initial}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {profile?.username ?? "..."}
+                </p>
+                <p className="text-xs text-muted truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1">
+            {user && (
+              <Link
+                href="/smart-review"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-between px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+              >
+                <span className="flex items-center gap-3">
+                  <Brain size={18} className="text-primary" />
+                  <span className="font-medium">Ôn tập hôm nay</span>
+                </span>
                 {dueCount > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-semibold">
+                  <span className="min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-primary text-white text-[11px] font-bold">
                     {dueCount}
                   </span>
                 )}
-              </button>
+              </Link>
+            )}
 
-              {reviewOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg py-1 animate-fade-up">
-                  <Link
-                    href="/smart-review"
-                    onClick={() => setReviewOpen(false)}
-                    className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Brain size={14} /> Ôn tập hôm nay
-                    </span>
-                    {dueCount > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-semibold">
-                        {dueCount}
-                      </span>
-                    )}
-                  </Link>
-                  <Link
-                    href="/practice/bookmarks"
-                    onClick={() => setReviewOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <Bookmark size={14} /> Câu đã đánh dấu
-                  </Link>
-                  <Link
-                    href="/stats"
-                    onClick={() => setReviewOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <BarChart3 size={14} /> Bộ đề cần ôn nhiều nhất
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={toggleTheme}
-            aria-label="Đổi giao diện sáng/tối"
-            className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-
-          {user && (
-            <Link
-              href="/setting"
-              aria-label="Cài đặt"
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-            >
-              <Settings size={18} />
-            </Link>
-          )}
-
-          {user ? (
-            <div className="relative ml-2" ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen((v) => !v)}
-                className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+            {user && (
+              <Link
+                href="/quizzes"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
               >
-                <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">
-                  {initial}
-                </span>
-                <span className="text-sm text-gray-700 dark:text-gray-300 max-w-[120px] truncate">
-                  {profile?.username ?? "..."}
-                </span>
-                <ChevronDown size={14} className="text-gray-400" />
-              </button>
+                <Layers size={18} className="text-muted" />
+                <span className="font-medium">Bộ đề của bạn</span>
+              </Link>
+            )}
 
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg py-1 animate-fade-up">
-                  {profile?.role === "admin" && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      <Shield size={15} /> Quản trị
-                    </Link>
-                  )}
-                  <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      signOut();
-                    }}
-                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-950/30"
-                  >
-                    <LogOut size={15} /> Đăng xuất
-                  </button>
-                </div>
+            {user && (
+              <Link
+                href="/subjects"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+              >
+                <BookOpen size={18} className="text-muted" />
+                <span className="font-medium">Môn học</span>
+              </Link>
+            )}
+
+            {user && (
+              <Link
+                href="/stats"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+              >
+                <BarChart3 size={18} className="text-muted" />
+                <span className="font-medium">Thống kê</span>
+              </Link>
+            )}
+
+            {user && (
+              <Link
+                href="/history"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+              >
+                <History size={18} className="text-muted" />
+                <span className="font-medium">Lịch sử</span>
+              </Link>
+            )}
+
+            {user && (
+              <Link
+                href="/practice/bookmarks"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+              >
+                <Bookmark size={18} className="text-muted" />
+                <span className="font-medium">Câu đã đánh dấu</span>
+              </Link>
+            )}
+
+            <div className="h-px bg-border my-2" />
+
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors text-left"
+            >
+              {theme === "dark" ? (
+                <Sun size={18} className="text-muted" />
+              ) : (
+                <Moon size={18} className="text-muted" />
               )}
-            </div>
-          ) : (
-            <Link
-              href="/login"
-              className="ml-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-hover transition-colors"
-            >
-              Đăng nhập
-            </Link>
-          )}
-        </div>
-
-        {/* Mobile toggle button */}
-        <button
-          onClick={() => setMobileOpen((v) => !v)}
-          className="sm:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-          aria-label="Mở menu"
-        >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      <div
-        className={cn(
-          "sm:hidden overflow-hidden transition-all duration-200 border-t border-gray-200 dark:border-gray-800",
-          mobileOpen ? "max-h-[32rem] opacity-100" : "max-h-0 opacity-0 border-t-0"
-        )}
-      >
-        <div className="px-4 py-3 flex flex-col gap-1">
-          {user && (
-            <Link
-              href="/smart-review"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center justify-between px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <span className="flex items-center gap-2">
-                <Brain size={16} /> Ôn tập hôm nay
+              <span className="font-medium">
+                {theme === "dark" ? "Giao diện sáng" : "Giao diện tối"}
               </span>
-              {dueCount > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-semibold">
-                  {dueCount}
-                </span>
-              )}
-            </Link>
-          )}
+            </button>
 
-          {user && (
-            <Link
-              href="/quizzes"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <Layers size={16} /> Bộ đề của bạn
-            </Link>
-          )}
-
-          {user && (
-            <Link
-              href="/subjects"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <BookOpen size={16} /> Môn học
-            </Link>
-          )}
-
-          {user && (
-            <Link
-              href="/stats"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <BarChart3 size={16} /> Thống kê
-            </Link>
-          )}
-
-          {user && (
-            <Link
-              href="/history"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <History size={16} /> Lịch sử
-            </Link>
-          )}
-
-          {user && (
-            <Link
-              href="/practice/bookmarks"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <Bookmark size={16} /> Câu đã đánh dấu
-            </Link>
-          )}
-
-          <button
-            onClick={toggleTheme}
-            className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            {theme === "dark" ? "Giao diện sáng" : "Giao diện tối"}
-          </button>
-
-          {user ? (
-            <>
-              {profile?.role === "admin" && (
-                <Link
-                  href="/admin"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                  <Shield size={16} /> Quản trị
-                </Link>
-              )}
+            {user && (
               <Link
                 href="/setting"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
               >
-                <Settings size={16} /> Cài đặt
+                <Settings size={18} className="text-muted" />
+                <span className="font-medium">Cài đặt</span>
               </Link>
+            )}
+
+            {user && profile?.role === "admin" && (
+              <Link
+                href="/admin"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground hover:bg-surface-muted transition-colors"
+              >
+                <Shield size={18} className="text-muted" />
+                <span className="font-medium">Quản trị</span>
+              </Link>
+            )}
+
+            {user ? (
               <button
                 onClick={() => {
-                  setMobileOpen(false);
+                  closeMobileMenu();
                   signOut();
                 }}
-                className="flex items-center gap-2 px-2 py-2 text-sm text-danger rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-danger hover:bg-danger-soft transition-colors text-left"
               >
-                <LogOut size={16} /> Đăng xuất
+                <LogOut size={18} />
+                <span className="font-medium">Đăng xuất</span>
               </button>
-            </>
-          ) : (
-            <Link
-              href="/login"
-              onClick={() => setMobileOpen(false)}
-              className="bg-primary text-white text-center px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-hover"
-            >
-              Đăng nhập
-            </Link>
-          )}
+            ) : (
+              <Link
+                href="/login"
+                onClick={closeMobileMenu}
+                className="mt-2 flex items-center justify-center px-4 py-3 rounded-lg bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary-hover transition-colors"
+              >
+                Đăng nhập
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </nav>
