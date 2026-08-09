@@ -61,3 +61,11 @@ button:disabled {
 .animate-fade-up {
   animation: fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Khi menu tài khoản đã có danh sách tài khoản, không cần thêm nút
+   "Chuyển tài khoản" riêng: người dùng chuyển trực tiếp bằng cách bấm
+   vào tài khoản trong danh sách hoặc dùng "Thêm tài khoản". */
+div[role="menu"] > button:nth-of-type(2),
+div[role="menu"] > button:nth-of-type(2) + div {
+  display: none;
+}
