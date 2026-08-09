@@ -38,7 +38,6 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
-  // Reset câu trả lời mỗi khi danh sách câu hỏi thay đổi (ví dụ đổi bộ đề đang chọn)
   useEffect(() => {
     setAnswers(Array(questions.length).fill(null));
   }, [questions]);
@@ -145,7 +144,6 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
-  // Chặn mọi hình thức rời khỏi bài làm khi đang trong lúc thi (chưa nộp bài)
   useEffect(() => {
     const isActive = started && !submitted;
     if (!isActive) return;
@@ -170,8 +168,6 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
       }
     }
 
-    // Chặn nút Back/Forward của trình duyệt: chèn thêm 1 mốc lịch sử,
-    // để lần bấm Back đầu tiên chỉ trigger cảnh báo thay vì rời trang ngay
     window.history.pushState(null, "", window.location.href);
 
     function handlePopState() {
@@ -206,6 +202,7 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
   }
 
   return {
+    questions,
     currentIndex,
     setCurrentIndex,
     answers,
