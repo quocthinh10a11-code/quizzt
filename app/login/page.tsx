@@ -64,11 +64,7 @@ export default function LoginPage() {
     setGoogleLoading(true);
     setRememberMeFlag(true);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
-    });
-
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/` } });
     if (error) {
       setError("Không thể đăng nhập bằng Google. Vui lòng thử lại.");
       setGoogleLoading(false);
@@ -76,24 +72,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-10 overflow-hidden bg-gray-50/70 dark:bg-gray-950">
-      <div aria-hidden className="absolute w-[420px] h-[420px] rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+    <div className="relative min-h-[calc(100vh-68px)] flex items-center justify-center px-4 py-10 overflow-hidden bg-background">
+      <div aria-hidden className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
-      <Card className="relative w-full max-w-md p-6 sm:p-8 border-0 shadow-xl shadow-gray-200/40 dark:shadow-black/20 animate-fade-up">
+      <Card className="relative w-full max-w-md p-6 sm:p-8 shadow-xl shadow-black/5 animate-fade-up">
         <div className="text-center mb-7">
-          <Link href="/" className="text-2xl font-bold text-primary">Quizzt</Link>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Chào mừng trở lại</h1>
-          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">Đăng nhập để tiếp tục hành trình ôn tập.</p>
+          <Link href="/" className="text-2xl font-bold tracking-tight text-primary">Quizzt</Link>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">Chào mừng trở lại</h1>
+          <p className="mt-1.5 text-sm leading-6 text-muted">Đăng nhập để tiếp tục hành trình ôn tập.</p>
         </div>
 
-        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleLogin} loading={googleLoading} leftIcon={!googleLoading && <GoogleIcon />}>
-          Đăng nhập với Google
-        </Button>
+        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleLogin} loading={googleLoading} leftIcon={!googleLoading && <GoogleIcon />}>Đăng nhập với Google</Button>
 
         <div className="flex items-center gap-3 my-5">
-          <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
-          <span className="text-xs text-gray-400">hoặc dùng email</span>
-          <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted">hoặc dùng email</span>
+          <div className="h-px flex-1 bg-border" />
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -101,21 +95,18 @@ export default function LoginPage() {
           <Input type="password" label="Mật khẩu" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
           <div className="flex items-center justify-between gap-3 text-sm">
-            <label className="flex items-center gap-2 text-gray-600 dark:text-gray-400 cursor-pointer">
-              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded border-gray-300 dark:border-gray-700 text-primary focus:ring-primary/20" />
+            <label className="flex items-center gap-2 text-muted cursor-pointer">
+              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded border-border accent-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20" />
               Ghi nhớ
             </label>
             <Link href="/forgot-password" className="text-primary font-medium hover:underline">Quên mật khẩu?</Link>
           </div>
 
-          {error && <p role="alert" className="text-sm text-danger bg-red-50 dark:bg-red-950/30 rounded-xl px-3.5 py-2.5">{error}</p>}
-
+          {error && <p role="alert" className="rounded-xl border border-danger/15 bg-danger-soft px-3.5 py-2.5 text-sm text-danger">{error}</p>}
           <Button type="submit" loading={loading} className="w-full mt-1">Đăng nhập</Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          Chưa có tài khoản? <Link href="/register" className="text-primary font-semibold hover:underline">Đăng ký miễn phí</Link>
-        </p>
+        <p className="mt-6 text-center text-sm text-muted">Chưa có tài khoản? <Link href="/register" className="text-primary font-semibold hover:underline">Đăng ký miễn phí</Link></p>
       </Card>
     </div>
   );

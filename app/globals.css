@@ -4,27 +4,79 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #172033;
+  --surface: #ffffff;
+  --surface-muted: #f4f7fb;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --primary-soft: #eff6ff;
+  --danger-soft: #fef2f2;
+  --success-soft: #f0fdf4;
+  --warning-soft: #fffbeb;
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #ededed;
+  --background: #0b1020;
+  --foreground: #eef2ff;
+  --surface: #111827;
+  --surface-muted: #172033;
+  --muted: #94a3b8;
+  --border: #253047;
+  --border-strong: #34415a;
+  --primary-soft: #172554;
+  --danger-soft: #3a171b;
+  --success-soft: #12301f;
+  --warning-soft: #33260c;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --font-sans: var(--font-be-vietnam-pro);
   --font-mono: var(--font-geist-mono);
 }
 
+@theme {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-bg-light: #f8fafc;
+  --color-bg-dark: #0b1020;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
+  min-height: 100%;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-be-vietnam-pro), system-ui, sans-serif;
 }
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--foreground);
+}
+
 button:not(:disabled),
 a,
 select,
@@ -36,15 +88,6 @@ label:has(input[type="radio"]) {
 
 button:disabled {
   cursor: not-allowed;
-}
-@theme {
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --color-bg-light: #f8fafc;
-  --color-bg-dark: #09090b;
 }
 
 @keyframes fade-up {
@@ -58,14 +101,35 @@ button:disabled {
   }
 }
 
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 .animate-fade-up {
   animation: fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Khi menu tài khoản đã có danh sách tài khoản, không cần thêm nút
-   "Chuyển tài khoản" riêng: người dùng chuyển trực tiếp bằng cách bấm
-   vào tài khoản trong danh sách hoặc dùng "Thêm tài khoản". */
-div[role="menu"] > button:nth-of-type(2),
-div[role="menu"] > button:nth-of-type(2) + div {
-  display: none;
+.animate-scale-in {
+  animation: scale-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
