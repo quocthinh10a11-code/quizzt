@@ -1,0 +1,63 @@
+name: one-time-ui-polish
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  polish:
+    if: "!contains(github.event.head_commit.message, '[skip ui-polish]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply UI polish
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          roots = [Path('app'), Path('components'), Path('lib')]
+          files = [p for root in roots if root.exists() for p in root.rglob('*') if p.suffix in {'.tsx','.ts'}]
+
+          replacements = {
+              'text-gray-900 dark:text-white': 'text-foreground',
+              'text-gray-500 dark:text-gray-400': 'text-muted',
+              'text-gray-400 dark:text-gray-500': 'text-muted',
+              'text-gray-400': 'text-muted',
+              'text-gray-600 dark:text-gray-300': 'text-foreground/80',
+              'text-gray-700 dark:text-gray-300': 'text-foreground/80',
+              'bg-gray-50/70 dark:bg-gray-950': 'bg-background',
+              'bg-gray-50 dark:bg-gray-900/60': 'bg-surface-muted',
+              'bg-gray-100 dark:bg-gray-800': 'bg-surface-muted',
+              'bg-white dark:bg-gray-900': 'bg-surface',
+              'border-gray-200/80 dark:border-gray-800': 'border-border',
+              'border-gray-200 dark:border-gray-700': 'border-border',
+              'border-gray-200 dark:border-gray-800': 'border-border',
+          }
+
+          for path in files:
+              text = path.read_text()
+              old = text
+              for a,b in replacements.items():
+                  text = text.replace(a,b)
+              text = text.replace('border-l-4 border-l-danger', 'border border-danger/20 bg-danger-soft/40')
+              text = re.sub(r'(?<![A-Za-z0-9_-])text-gray-(?:500|600|700)(?![A-Za-z0-9_-])', 'text-foreground/80', text)
+              text = re.sub(r'(?<![A-Za-z0-9_-])text-gray-300(?![A-Za-z0-9_-])', 'text-muted', text)
+              text = re.sub(r'(?<![A-Za-z0-9_-])text-gray-200(?![A-Za-z0-9_-])', 'text-muted', text)
+              text = re.sub(r'(?<![A-Za-z0-9_-])bg-gray-50(?![A-Za-z0-9_-])', 'bg-surface-muted', text)
+              text = re.sub(r'(?<![A-Za-z0-9_-])bg-gray-100(?![A-Za-z0-9_-])', 'bg-surface-muted', text)
+              text = re.sub(r'(?<![A-Za-z0-9_-])bg-gray-900(?![A-Za-z0-9_-])', 'bg-surface', text)
+              text = re.sub(r'(?<![A-Za-z0-9_-])bg-gray-800(?![A-Za-z0-9_-])', 'bg-surface-muted', text)
+              if text != old:
+                  path.write_text(text)
+          PY
+      - name: Commit changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status --short
+          git commit -m "refactor(ui): finish design token cleanup [skip ui-polish]" || exit 0
+          git push
