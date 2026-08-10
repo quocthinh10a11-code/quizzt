@@ -1,0 +1,59 @@
+name: Final UI cleanup
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, 'fix: soften review result cards') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply final UI cleanup
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path('app/review/[id]/page.tsx'): (
+                  '"p-5 sm:p-6 border-l-4",\n                  isCorrect ? "border-l-success" : "border-l-danger"',
+                  '"p-5 sm:p-6 border",\n                  isCorrect\n                    ? "border-success/20 bg-success-soft/40"\n                    : "border-danger/20 bg-danger-soft/40"'
+              ),
+              Path('app/review/bookmarks/page.tsx'): (
+                  'className={cn("p-5 border-l-4", isCorrect ? "border-l-success" : "border-l-danger")}',
+                  'className={cn(\n                "p-5 border",\n                isCorrect\n                  ? "border-success/20 bg-success-soft/40"\n                  : "border-danger/20 bg-danger-soft/40"\n              )}'
+              ),
+          }
+
+          for path, (old, new) in replacements.items():
+              text = path.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected pattern not found in {path}')
+              path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Verify remaining side-tab borders
+        run: |
+          if grep -RIn --include='*.tsx' 'border-l-4' app/review; then
+            echo 'border-l-4 still remains in review pages'
+            exit 1
+          fi
+
+      - name: Run UI detector
+        run: node .claude/skills/impeccable/scripts/detect.mjs --json app components
+
+      - name: Commit final cleanup and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm .github/workflows/final-ui-fix.yml
+          git add app/review/[id]/page.tsx app/review/bookmarks/page.tsx .github/workflows/final-ui-fix.yml
+          git commit -m 'fix: soften review result cards'
+          git push
