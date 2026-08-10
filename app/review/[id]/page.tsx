@@ -250,8 +250,10 @@ export default function ReviewPage() {
               <Card
                 key={question.id}
                 className={cn(
-                  "p-5 sm:p-6 border-l-4",
-                  isCorrect ? "border-l-success" : "border-l-danger"
+                  "p-5 sm:p-6 border",
+                  isCorrect
+                    ? "border-success/20 bg-success-soft/40"
+                    : "border-danger/20 bg-danger-soft/40"
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
