@@ -1,0 +1,140 @@
+name: one-time-learning-ux
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  ux:
+    if: "!contains(github.event.head_commit.message, '[skip learning-ux]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add app-wide confirmation and practice shortcuts
+        shell: bash
+        run: |
+          cat > components/ui/ConfirmProvider.tsx <<'EOF'
+          "use client";
+
+          import { createContext, useCallback, useContext, useState } from "react";
+          import ConfirmDialog from "@/components/ui/ConfirmDialog";
+
+          type ConfirmOptions = {
+            title: string;
+            description: string;
+            confirmLabel?: string;
+            cancelLabel?: string;
+          };
+
+          type Request = ConfirmOptions & { resolve: (value: boolean) => void };
+
+          const ConfirmContext = createContext<((options: ConfirmOptions) => Promise<boolean>) | null>(null);
+
+          export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+            const [request, setRequest] = useState<Request | null>(null);
+
+            const confirm = useCallback((options: ConfirmOptions) => {
+              return new Promise<boolean>((resolve) => setRequest({ ...options, resolve }));
+            }, []);
+
+            const close = useCallback((result: boolean) => {
+              if (!request) return;
+              request.resolve(result);
+              setRequest(null);
+            }, [request]);
+
+            return (
+              <ConfirmContext.Provider value={confirm}>
+                {children}
+                <ConfirmDialog
+                  open={Boolean(request)}
+                  title={request?.title ?? ""}
+                  description={request?.description ?? ""}
+                  confirmLabel={request?.confirmLabel ?? "Xác nhận"}
+                  cancelLabel={request?.cancelLabel ?? "Huỷ"}
+                  onConfirm={() => close(true)}
+                  onClose={() => close(false)}
+                />
+              </ConfirmContext.Provider>
+            );
+          }
+
+          export function useConfirm() {
+            const confirm = useContext(ConfirmContext);
+            if (!confirm) throw new Error("useConfirm must be used inside ConfirmProvider");
+            return { confirm };
+          }
+          EOF
+
+          python - <<'PY'
+          from pathlib import Path
+
+          layout = Path('app/layout.tsx')
+          text = layout.read_text()
+          if 'ConfirmProvider' not in text:
+              text = text.replace('import { ToastProvider } from "@/components/ui/Toast";\n', 'import { ToastProvider } from "@/components/ui/Toast";\nimport { ConfirmProvider } from "@/components/ui/ConfirmProvider";\n')
+              text = text.replace('<ToastProvider>\n              <Navbar />', '<ToastProvider>\n              <ConfirmProvider>\n                <Navbar />')
+              text = text.replace('              <Footer />\n            </ToastProvider>', '                <Footer />\n              </ConfirmProvider>\n            </ToastProvider>')
+              layout.write_text(text)
+
+          hook = Path('lib/usePracticeSession.ts')
+          text = hook.read_text()
+          if 'useConfirm' not in text:
+              text = text.replace('import { useToast } from "@/components/ui/Toast";\n', 'import { useToast } from "@/components/ui/Toast";\nimport { useConfirm } from "@/components/ui/ConfirmProvider";\n')
+              text = text.replace('  const { showToast } = useToast();\n', '  const { showToast } = useToast();\n  const { confirm } = useConfirm();\n')
+
+              old_click = '''    function handleDocumentClick(e: MouseEvent) {\n      const anchor = (e.target as HTMLElement)?.closest("a[href]") as HTMLAnchorElement | null;\n      if (!anchor) return;\n\n      const href = anchor.getAttribute("href");\n      if (!href || href.startsWith("#")) return;\n      if (anchor.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;\n\n      const confirmed = window.confirm(EXIT_WARNING_MESSAGE);\n      if (!confirmed) {\n        e.preventDefault();\n        e.stopPropagation();\n      }\n    }\n'''
+              new_click = '''    async function handleDocumentClick(e: MouseEvent) {\n      const anchor = (e.target as HTMLElement)?.closest("a[href]") as HTMLAnchorElement | null;\n      if (!anchor) return;\n\n      const href = anchor.getAttribute("href");\n      if (!href || href.startsWith("#")) return;\n      if (anchor.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;\n\n      e.preventDefault();\n      e.stopPropagation();\n      const confirmed = await confirm({\n        title: "Rời khỏi bài làm?",\n        description: EXIT_WARNING_MESSAGE,\n        confirmLabel: "Rời bài",\n      });\n      if (confirmed) window.location.assign(href);\n    }\n'''
+              text = text.replace(old_click, new_click)
+
+              old_pop = '''    function handlePopState() {\n      const confirmed = window.confirm(EXIT_WARNING_MESSAGE);\n      if (confirmed) {\n        window.history.back();\n      } else {\n        window.history.pushState(null, "", window.location.href);\n      }\n    }\n'''
+              new_pop = '''    async function handlePopState() {\n      const confirmed = await confirm({\n        title: "Rời khỏi bài làm?",\n        description: EXIT_WARNING_MESSAGE,\n        confirmLabel: "Rời bài",\n      });\n      if (confirmed) {\n        window.history.back();\n      } else {\n        window.history.pushState(null, "", window.location.href);\n      }\n    }\n'''
+              text = text.replace(old_pop, new_pop)
+
+              marker = '  function formatTime(seconds: number) {'
+              shortcuts = '''  useEffect(() => {\n    if (!started || submitted) return;\n\n    function handleKeyboard(event: KeyboardEvent) {\n      const target = event.target as HTMLElement | null;\n      if (target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)) return;\n\n      if (event.key >= "1" && event.key <= "4") {\n        const optionIndex = Number(event.key) - 1;\n        if (optionIndex < (questions[currentIndex]?.options.length ?? 0)) {\n          event.preventDefault();\n          handleSelect(optionIndex);\n        }\n        return;\n      }\n\n      if (event.key === "ArrowLeft") {\n        event.preventDefault();\n        handlePrevious();\n        return;\n      }\n\n      if (event.key === "ArrowRight") {\n        event.preventDefault();\n        handleNext();\n        return;\n      }\n\n      if (event.key === "Enter" && currentIndex === questions.length - 1) {\n        event.preventDefault();\n        void handleSubmit();\n      }\n    }\n\n    window.addEventListener("keydown", handleKeyboard);\n    return () => window.removeEventListener("keydown", handleKeyboard);\n  }, [started, submitted, currentIndex, questions]);\n\n'''
+              text = text.replace(marker, shortcuts + marker)
+              hook.write_text(text)
+
+          for path in [Path('app/practice/[id]/page.tsx'), Path('app/practice/bookmarks/page.tsx'), Path('app/smart-review/page.tsx')]:
+              if not path.exists(): continue
+              text = path.read_text()
+              if 'useConfirm' not in text:
+                  anchor = 'import { useAuth } from "@/context/AuthContext";\n'
+                  if anchor in text:
+                      text = text.replace(anchor, anchor + 'import { useConfirm } from "@/components/ui/ConfirmProvider";\n')
+                  elif 'import { useAuth' in text:
+                      text = text.replace('import { useAuth', 'import { useConfirm } from "@/components/ui/ConfirmProvider";\nimport { useAuth')
+                  if 'const { user } = useAuth();' in text:
+                      text = text.replace('const { user } = useAuth();', 'const { user } = useAuth();\n  const { confirm } = useConfirm();', 1)
+                  elif 'const { user, loading: authLoading } = useAuth();' in text:
+                      text = text.replace('const { user, loading: authLoading } = useAuth();', 'const { user, loading: authLoading } = useAuth();\n  const { confirm } = useConfirm();', 1)
+              text = text.replace('function handleExit() {\n    const confirmed = window.confirm(\n      "Kết quả của bạn sẽ không được tính. Xác nhận thoát?"\n    );\n\n    if (confirmed) {', 'async function handleExit() {\n    const confirmed = await confirm({ title: "Rời khỏi bài làm?", description: "Kết quả của bạn sẽ không được tính. Bạn có chắc muốn rời khỏi bài làm?", confirmLabel: "Rời bài" });\n\n    if (confirmed) {')
+              text = text.replace('function handleExit(){if(window.confirm("Kết quả của bạn sẽ không được tính. Xác nhận thoát?")){session.forceExit();router.push("/");}}', 'async function handleExit(){const confirmed=await confirm({title:"Rời khỏi bài làm?",description:"Kết quả của bạn sẽ không được tính. Bạn có chắc muốn rời khỏi bài làm?",confirmLabel:"Rời bài"});if(confirmed){session.forceExit();router.push("/");}}')
+              path.write_text(text)
+
+          path = Path('app/subjects/page.tsx')
+          text = path.read_text()
+          if 'useConfirm' not in text:
+              text = text.replace('import { useAuth } from "@/context/AuthContext";', 'import { useAuth } from "@/context/AuthContext"; import { useConfirm } from "@/components/ui/ConfirmProvider";')
+              text = text.replace('export default function SubjectsPage(){const{user,loading:authLoading}=useAuth();', 'export default function SubjectsPage(){const{user,loading:authLoading}=useAuth();const{confirm}=useConfirm();')
+          text = text.replace('async function handleDeleteSubject(id:number){if(!window.confirm("Xoá môn học này sẽ xoá luôn tất cả chương bên trong. Các bộ đề liên quan vẫn giữ nguyên, chỉ mất liên kết môn/chương. Tiếp tục?"))return;', 'async function handleDeleteSubject(id:number){const confirmed=await confirm({title:"Xoá môn học này?",description:"Tất cả chương bên trong sẽ bị xoá. Các bộ đề liên quan vẫn giữ nguyên, chỉ mất liên kết môn/chương.",confirmLabel:"Xoá môn học"});if(!confirmed)return;')
+          path.write_text(text)
+
+          for path in [Path('app/practice/[id]/page.tsx'), Path('app/practice/bookmarks/page.tsx')]:
+              if not path.exists(): continue
+              text = path.read_text()
+              text = text.replace('aria-label={`Đi đến câu ${i + 1}`}', 'aria-label={`Đi đến câu ${i + 1}${bookmarkedIds?.has?.(questions[i]?.id) ? ", đã đánh dấu" : ""}`}')
+              text = text.replace('aria-label={`Đi đến câu ${i+1}`}', 'aria-label={`Đi đến câu ${i+1}${bookmarkedIds?.has?.(questions[i]?.id) ? ", đã đánh dấu" : ""}`}')
+              path.write_text(text)
+          PY
+      - name: Remove one-time workflows and commit
+        shell: bash
+        run: |
+          rm -f .github/workflows/one-time-learning-ux.yml .github/workflows/one-time-ui-polish.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status --short
+          git commit -m "feat(ux): polish learning flow and keyboard shortcuts [skip learning-ux]" || exit 0
+          git push
