@@ -13,8 +13,9 @@ import Badge from "@/components/ui/Badge";
 import { supabase } from "@/lib/supabase";
 import { getTagsForQuizzes, type Tag } from "@/lib/quizTags";
 import { useAuth } from "@/context/AuthContext";
-import { getDueReviewCount } from "@/lib/reviewQueue";
-import { getUserAttempts, type AttemptSummary } from "@/lib/quizAttempts";
+import { getDueReviewCountResult } from "@/lib/reviewQueue";
+import { getUserAttemptsResult, type AttemptSummary } from "@/lib/quizAttempts";
+import { getLearningNextAction } from "@/lib/learningNextAction";
 
 type QuizRow = {
   id: number;
@@ -66,8 +67,8 @@ export default function HomePage() {
           .from("quizzes")
           .select("id, title, description, updated_at, user_id, is_public, questions:questions(count)")
           .order("updated_at", { ascending: false }),
-        Promise.resolve(getDueReviewCount(userId)),
-        Promise.resolve(getUserAttempts(userId, ["quiz"], 10)),
+        getDueReviewCountResult(userId),
+        getUserAttemptsResult(userId, ["quiz"], 10),
         supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
       ]);
 
@@ -105,8 +106,15 @@ export default function HomePage() {
       }
 
       if (!cancelled) {
-        setDueReviewCount(dueResult);
-        setRecentAttempts(attemptsResult);
+        const learningErrors = [dueResult.error, attemptsResult.error].filter(Boolean);
+        if (learningErrors.length > 0) {
+          setLearningError("Không thể xác định việc học tiếp theo lúc này.");
+          setDueReviewCount(0);
+          setRecentAttempts([]);
+        } else {
+          setDueReviewCount(dueResult.count);
+          setRecentAttempts(attemptsResult.data);
+        }
         setUsername(profileResult.data?.username ?? null);
         setLoading(false);
         setLearningLoading("ready");
@@ -141,16 +149,82 @@ export default function HomePage() {
   const recentQuiz = validRecentAttempts[0];
   const hasRecentLearning = !!recentQuiz;
   const hasCatalog = quizzes.length > 0;
-  const isNewUser = !hasRecentLearning && dueReviewCount === 0;
-  const primaryAction = dueReviewCount > 0
-    ? "review"
-    : hasRecentLearning
-      ? "continue"
-      : "discover";
+  const isNewUser = !hasRecentLearning && dueReviewCount === 0 && !learningError;
+  const nextAction = getLearningNextAction({
+    dueReviewCount,
+    recentLearning: recentQuiz
+      ? { quizId: recentQuiz.quiz_id!, quizTitle: recentQuiz.quiz_title }
+      : null,
+    hasCatalog,
+  });
 
   function handleQuizDeleted(id: number) {
     setQuizzes((prev) => prev.filter((q) => q.id !== id));
   }
+
+  const renderNextAction = () => {
+    if (learningError) {
+      return (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <Brain size={20} className="text-primary" />
+              <p className="text-sm font-medium text-primary">Việc nên làm tiếp theo</p>
+            </div>
+            <h2 id="next-learning-title" className="text-xl font-bold text-gray-900 dark:text-white">
+              Bắt đầu với bộ đề
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">
+              Chưa thể tải dữ liệu học tập. Bạn vẫn có thể chọn một bộ đề để bắt đầu.
+            </p>
+          </div>
+          {hasCatalog ? (
+            <a href="#quiz-catalog" className="shrink-0">
+              <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
+                Khám phá bộ đề
+              </Button>
+            </a>
+          ) : (
+            <Link href="/quizzes/create" className="shrink-0">
+              <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
+                Tạo bộ đề
+              </Button>
+            </Link>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <Brain size={20} className="text-primary" />
+            <p className="text-sm font-medium text-primary">Việc nên làm tiếp theo</p>
+          </div>
+          <h2 id="next-learning-title" className="text-xl font-bold text-gray-900 dark:text-white">
+            {nextAction.title}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1 truncate">
+            {nextAction.reason}
+          </p>
+        </div>
+        {nextAction.type === "DISCOVER" && hasCatalog ? (
+          <a href={nextAction.target} className="shrink-0">
+            <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
+              {nextAction.ctaLabel}
+            </Button>
+          </a>
+        ) : (
+          <Link href={nextAction.target} className="shrink-0">
+            <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
+              {nextAction.ctaLabel}
+            </Button>
+          </Link>
+        )}
+      </div>
+    );
+  };
 
   return (
     <RequireAuth>
@@ -174,81 +248,7 @@ export default function HomePage() {
         ) : (
           <section className="mb-8" aria-labelledby="next-learning-title">
             <Card className="p-5 sm:p-6 border-primary/20 bg-primary/5 dark:bg-primary/10">
-              {primaryAction === "review" && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Brain size={20} className="text-primary" />
-                      <p className="text-sm font-medium text-primary">Việc nên làm tiếp theo</p>
-                    </div>
-                    <h2 id="next-learning-title" className="text-xl font-bold text-gray-900 dark:text-white">
-                      Ôn tập hôm nay
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-300 mt-1">
-                      Bạn có <span className="font-semibold">{dueReviewCount} câu</span> đã đến hạn ôn.
-                    </p>
-                  </div>
-                  <Link href="/smart-review" className="shrink-0">
-                    <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
-                      Ôn tập ngay
-                    </Button>
-                  </Link>
-                </div>
-              )}
-
-              {primaryAction === "continue" && recentQuiz && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Brain size={20} className="text-primary" />
-                      <p className="text-sm font-medium text-primary">Việc nên làm tiếp theo</p>
-                    </div>
-                    <h2 id="next-learning-title" className="text-xl font-bold text-gray-900 dark:text-white">
-                      Tiếp tục học
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-300 mt-1 truncate">
-                      Mở lại <span className="font-semibold">{recentQuiz.quiz_title}</span> vừa học gần đây.
-                    </p>
-                  </div>
-                  <Link href={`/practice/${recentQuiz.quiz_id}`} className="shrink-0">
-                    <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
-                      Tiếp tục học
-                    </Button>
-                  </Link>
-                </div>
-              )}
-
-              {primaryAction === "discover" && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Brain size={20} className="text-primary" />
-                      <p className="text-sm font-medium text-primary">Bắt đầu với Quizzt</p>
-                    </div>
-                    <h2 id="next-learning-title" className="text-xl font-bold text-gray-900 dark:text-white">
-                      {hasCatalog ? "Khám phá bộ đề" : "Tạo bộ đề đầu tiên"}
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-300 mt-1">
-                      {hasCatalog
-                        ? "Chọn một bộ đề phù hợp và bắt đầu làm bài."
-                        : "Tạo bộ đề của riêng bạn để bắt đầu ôn tập."}
-                    </p>
-                  </div>
-                  {hasCatalog ? (
-                    <a href="#quiz-catalog" className="shrink-0">
-                      <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
-                        Khám phá bộ đề
-                      </Button>
-                    </a>
-                  ) : (
-                    <Link href="/quizzes/create" className="shrink-0">
-                      <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
-                        Tạo bộ đề
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              )}
+              {renderNextAction()}
             </Card>
 
             {learningError && (
@@ -256,22 +256,22 @@ export default function HomePage() {
             )}
 
             <div className="mt-4 flex flex-wrap gap-3">
-              {primaryAction === "review" && recentQuiz && (
+              {!learningError && nextAction.type === "REVIEW_DUE" && recentQuiz && (
                 <Link href={`/practice/${recentQuiz.quiz_id}`}>
                   <Button variant="secondary" size="sm">Tiếp tục học</Button>
                 </Link>
               )}
-              {primaryAction !== "discover" && (
+              {!learningError && nextAction.type !== "DISCOVER" && (
                 <a href="#quiz-catalog">
                   <Button variant="secondary" size="sm">Khám phá bộ đề</Button>
                 </a>
               )}
-              {primaryAction === "continue" && (
+              {!learningError && nextAction.type === "CONTINUE" && (
                 <Link href="/quizzes/create">
                   <Button variant="secondary" size="sm">Tạo bộ đề</Button>
                 </Link>
               )}
-              {primaryAction === "discover" && hasCatalog && (
+              {!learningError && nextAction.type === "DISCOVER" && hasCatalog && (
                 <Link href="/quizzes/create">
                   <Button variant="secondary" size="sm" leftIcon={<Plus size={15} />}>Tạo bộ đề</Button>
                 </Link>

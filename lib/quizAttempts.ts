@@ -68,11 +68,16 @@ export type AttemptSummary = {
   created_at: string;
 };
 
-export async function getUserAttempts(
+export type UserAttemptsResult = {
+  data: AttemptSummary[];
+  error: string | null;
+};
+
+export async function getUserAttemptsResult(
   userId: string,
   attemptTypes?: AttemptType[],
   limit: number = 50
-): Promise<AttemptSummary[]> {
+): Promise<UserAttemptsResult> {
   let query = supabase
     .from("quiz_attempts")
     .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, attempt_type, created_at")
@@ -86,8 +91,20 @@ export async function getUserAttempts(
 
   const { data, error } = await query;
 
-  if (error || !data) return [];
-  return data;
+  if (error || !data) {
+    return { data: [], error: error?.message ?? "Không thể tải lịch sử học tập." };
+  }
+
+  return { data, error: null };
+}
+
+export async function getUserAttempts(
+  userId: string,
+  attemptTypes?: AttemptType[],
+  limit: number = 50
+): Promise<AttemptSummary[]> {
+  const result = await getUserAttemptsResult(userId, attemptTypes, limit);
+  return result.data;
 }
 
 const HISTORY_PAGE_SIZE = 20;
