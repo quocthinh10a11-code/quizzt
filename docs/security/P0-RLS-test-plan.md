@@ -6,6 +6,8 @@ Verify the three QA-confirmed P0 authorization findings after the SQL in `P0-RLS
 
 **Current status:** Database/RLS runtime verification is **NOT VERIFIED**. The SQL artifact has not been executed against production.
 
+**Developer static status:** SQL scope matches the QA-authorized P0-1/P0-2/P0-3 changes. No application-code change is required by the inspected create-quiz/question flows.
+
 ## Preconditions
 
 - Use two authenticated test accounts: User A and User B.
