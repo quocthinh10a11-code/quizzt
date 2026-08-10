@@ -53,6 +53,7 @@ export default function HomePage() {
     if (authLoading || !user) return;
 
     let cancelled = false;
+    const userId = user.id;
 
     async function loadHome() {
       setLoading(true);
@@ -65,9 +66,9 @@ export default function HomePage() {
           .from("quizzes")
           .select("id, title, description, updated_at, user_id, is_public, questions:questions(count)")
           .order("updated_at", { ascending: false }),
-        Promise.resolve(getDueReviewCount(user.id)),
-        Promise.resolve(getUserAttempts(user.id, ["quiz"], 10)),
-        supabase.from("profiles").select("username").eq("id", user.id).maybeSingle(),
+        Promise.resolve(getDueReviewCount(userId)),
+        Promise.resolve(getUserAttempts(userId, ["quiz"], 10)),
+        supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
       ]);
 
       if (cancelled) return;
@@ -233,11 +234,19 @@ export default function HomePage() {
                         : "Tạo bộ đề của riêng bạn để bắt đầu ôn tập."}
                     </p>
                   </div>
-                  <a href="#quiz-catalog" className="shrink-0">
-                    <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
-                      {hasCatalog ? "Khám phá bộ đề" : "Tạo bộ đề"}
-                    </Button>
-                  </a>
+                  {hasCatalog ? (
+                    <a href="#quiz-catalog" className="shrink-0">
+                      <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
+                        Khám phá bộ đề
+                      </Button>
+                    </a>
+                  ) : (
+                    <Link href="/quizzes/create" className="shrink-0">
+                      <Button variant="primary" size="lg" rightIcon={<ArrowRight size={17} />}>
+                        Tạo bộ đề
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </Card>
