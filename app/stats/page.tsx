@@ -52,7 +52,7 @@ export default function StatsPage() {
 
   return (
     <RequireAuth>
-      <main className="min-h-[calc(100vh-64px)] bg-gray-50/70 dark:bg-gray-950">
+      <main className="min-h-[calc(100vh-64px)] bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -60,10 +60,10 @@ export default function StatsPage() {
                 <BarChart3 size={14} />
                 Tiến độ của bạn
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
                 Thống kê học tập
               </h1>
-              <p className="mt-2 text-sm sm:text-base text-gray-500 dark:text-gray-400 max-w-2xl">
+              <p className="mt-2 text-sm sm:text-base text-muted max-w-2xl">
                 Nhìn lại quá trình học, nhận ra điểm mạnh và biết mình nên ôn phần nào tiếp theo.
               </p>
             </div>
@@ -88,8 +88,8 @@ export default function StatsPage() {
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
                   <BookOpenCheck size={28} />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Hành trình của bạn sắp bắt đầu</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-md">
+                <h2 className="text-lg font-semibold text-foreground">Hành trình của bạn sắp bắt đầu</h2>
+                <p className="text-sm text-muted mt-2 max-w-md">
                   Hãy hoàn thành một vài câu hỏi. Quizzt sẽ biến kết quả thành những thống kê dễ hiểu để bạn biết nên học gì tiếp theo.
                 </p>
                 <Link href="/quizzes" className="mt-5">
@@ -102,27 +102,27 @@ export default function StatsPage() {
               <Card className="p-5 sm:p-6 border-0 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tổng số câu đã làm</p>
-                    <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{totalAnswered}</p>
+                    <p className="text-sm font-medium text-muted">Tổng số câu đã làm</p>
+                    <p className="mt-2 text-3xl font-bold text-foreground">{totalAnswered}</p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                     <BookOpenCheck size={21} />
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">Tính trên tất cả lượt luyện tập đã ghi nhận</p>
+                <p className="mt-3 text-xs text-muted">Tính trên tất cả lượt luyện tập đã ghi nhận</p>
               </Card>
 
               <Card className="p-5 sm:p-6 border-0 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tỷ lệ đúng tổng thể</p>
-                    <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{overallPercent}%</p>
+                    <p className="text-sm font-medium text-muted">Tỷ lệ đúng tổng thể</p>
+                    <p className="mt-2 text-3xl font-bold text-foreground">{overallPercent}%</p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-success/10 text-success flex items-center justify-center">
                     <Target size={21} />
                   </div>
                 </div>
-                <div className="mt-4 h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                <div className="mt-4 h-2 rounded-full bg-surface-muted overflow-hidden">
                   <div className="h-full rounded-full bg-success transition-all" style={{ width: `${overallPercent}%` }} />
                 </div>
               </Card>
@@ -132,7 +132,7 @@ export default function StatsPage() {
               <Card className="p-5 sm:p-6 border-0 shadow-sm">
                 <div className="mb-5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary">Năng lực</p>
-                  <h2 className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">Theo độ khó</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-foreground">Theo độ khó</h2>
                 </div>
                 <div className="flex flex-col gap-5">
                   {difficultyStats.map((d) => {
@@ -140,13 +140,13 @@ export default function StatsPage() {
                     return (
                       <div key={d.difficulty}>
                         <div className="flex justify-between items-center text-sm mb-2">
-                          <span className="text-gray-700 dark:text-gray-300 font-medium">{DIFFICULTY_LABEL[d.difficulty] ?? d.difficulty}</span>
-                          <span className="font-semibold text-gray-600 dark:text-gray-300">{pct}%</span>
+                          <span className="text-foreground/80 font-medium">{DIFFICULTY_LABEL[d.difficulty] ?? d.difficulty}</span>
+                          <span className="font-semibold text-foreground/80">{pct}%</span>
                         </div>
-                        <div className="h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                        <div className="h-2.5 rounded-full bg-surface-muted overflow-hidden">
                           <div className={`h-full rounded-full ${DIFFICULTY_COLOR[d.difficulty] ?? "bg-primary"}`} style={{ width: `${pct}%` }} />
                         </div>
-                        <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">{d.correct}/{d.total} câu đúng</p>
+                        <p className="mt-1.5 text-xs text-muted">{d.correct}/{d.total} câu đúng</p>
                       </div>
                     );
                   })}
@@ -157,7 +157,7 @@ export default function StatsPage() {
                 <div className="flex items-start justify-between gap-3 mb-5">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-danger">Gợi ý ôn tập</p>
-                    <h2 className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">Bộ đề cần luyện thêm</h2>
+                    <h2 className="mt-1 text-lg font-semibold text-foreground">Bộ đề cần luyện thêm</h2>
                   </div>
                   <TrendingDown size={19} className="text-danger mt-1" />
                 </div>
@@ -165,10 +165,10 @@ export default function StatsPage() {
                   {weakestQuizzes.map((q) => {
                     const pct = percent(q.correct, q.total);
                     return (
-                      <div key={q.quizId ?? q.quizTitle} className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 dark:bg-gray-900/60 p-3">
+                      <div key={q.quizId ?? q.quizTitle} className="flex items-center justify-between gap-3 rounded-xl bg-surface-muted p-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{q.quizTitle}</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{q.correct}/{q.total} đúng · {q.attemptCount} lượt</p>
+                          <p className="text-sm font-medium text-foreground truncate">{q.quizTitle}</p>
+                          <p className="text-xs text-muted mt-0.5">{q.correct}/{q.total} đúng · {q.attemptCount} lượt</p>
                         </div>
                         <div className="shrink-0 flex items-center gap-2">
                           <span className={`text-sm font-semibold ${pct >= 80 ? "text-success" : pct >= 50 ? "text-warning" : "text-danger"}`}>{pct}%</span>

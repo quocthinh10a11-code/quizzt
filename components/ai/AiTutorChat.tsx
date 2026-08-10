@@ -172,11 +172,11 @@ export default function AiTutorChat({
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-30 w-[380px] max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-2xl flex flex-col overflow-hidden animate-fade-up">
+    <div className="fixed bottom-6 right-6 z-30 w-[380px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface shadow-2xl flex flex-col overflow-hidden animate-fade-up">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-primary/5">
         <div className="flex items-center gap-2">
           <MessageCircle size={16} className="text-primary" />
-          <span className="text-sm font-semibold text-gray-900 dark:text-white">Hỏi AI về câu này</span>
+          <span className="text-sm font-semibold text-foreground">Hỏi AI về câu này</span>
           {!submitted && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
               Chế độ gợi mở
@@ -185,7 +185,7 @@ export default function AiTutorChat({
         </div>
         <button
           onClick={() => setOpen(false)}
-          className="text-gray-400 hover:text-danger transition-colors"
+          className="text-muted hover:text-danger transition-colors"
           aria-label="Đóng"
         >
           <X size={16} />
@@ -194,7 +194,7 @@ export default function AiTutorChat({
 
       <div ref={scrollRef} className="flex-1 max-h-96 overflow-y-auto px-4 py-3 flex flex-col gap-3">
         {messages.length === 0 && (
-          <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+          <p className="text-xs text-muted italic">
             Hỏi AI bất cứ điều gì về câu hỏi đang xem — ví dụ: &quot;Giải thích khái niệm này giúp mình&quot;.
             {!submitted && " AI sẽ gợi mở tư duy trước, chưa đưa đáp án ngay."}
           </p>
@@ -204,7 +204,7 @@ export default function AiTutorChat({
           m.role === "divider" ? (
             <div key={i} className="flex items-center gap-2 my-1">
               <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{m.content}</span>
+              <span className="text-[10px] text-muted whitespace-nowrap">{m.content}</span>
               <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
             </div>
           ) : (
@@ -214,7 +214,7 @@ export default function AiTutorChat({
                 "max-w-[90%] px-3 py-2 rounded-lg",
                 m.role === "user"
                   ? "self-end bg-primary text-white text-sm whitespace-pre-wrap break-words"
-                  : "self-start bg-gray-100 dark:bg-gray-800"
+                  : "self-start bg-surface-muted"
               )}
             >
               {m.role === "assistant" ? <AIMessage content={m.content} /> : m.content}
@@ -223,7 +223,7 @@ export default function AiTutorChat({
         )}
 
         {loading && (
-          <div className="self-start flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+          <div className="self-start flex items-center gap-1.5 text-xs text-muted">
             <Loader2 size={12} className="animate-spin" />
             AI đang trả lời...
           </div>
@@ -243,7 +243,7 @@ export default function AiTutorChat({
           onKeyDown={handleKeyDown}
           disabled={loading}
           placeholder="Nhập câu hỏi..."
-          className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-50"
+          className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-surface text-foreground disabled:opacity-50"
         />
         <button
           onClick={handleSend}

@@ -19,7 +19,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={textareaId} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label htmlFor={textareaId} className="text-sm font-medium text-foreground/80">
           {label}
         </label>
       )}
@@ -30,9 +30,9 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
         aria-invalid={!!error}
         className={cn(
           "w-full rounded-lg border px-4 py-2 text-sm font-mono",
-          "bg-white dark:bg-gray-900",
+          "bg-surface",
           "text-black dark:text-white",
-          "placeholder:text-gray-400 dark:placeholder:text-gray-500",
+          "placeholder:text-muted dark:placeholder:text-foreground/80",
           "transition-all duration-150",
           "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary",
           error
@@ -44,7 +44,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
       />
 
       {error && <p className="text-sm text-danger">{error}</p>}
-      {!error && helperText && <p className="text-sm text-gray-500 dark:text-gray-400">{helperText}</p>}
+      {!error && helperText && <p className="text-sm text-muted">{helperText}</p>}
     </div>
   );
 });

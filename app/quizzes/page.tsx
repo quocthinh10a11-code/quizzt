@@ -127,7 +127,7 @@ export default function MyQuizzesPage() {
     <RequireAuth>
       <div className="p-8 max-w-6xl mx-auto">
         <div className="flex flex-wrap items-center gap-3 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-foreground">
             Bộ đề của bạn
           </h1>
           <Link href="/quizzes/create" className="shrink-0">
@@ -169,7 +169,7 @@ export default function MyQuizzesPage() {
 
         {allTags.length > 0 && (
           <div className="mb-6 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Nhãn:</span>
+            <span className="text-sm text-muted">Nhãn:</span>
             {allTags.map((tag) => {
               const active = selectedTagIds.includes(tag.id);
               return (
@@ -180,7 +180,7 @@ export default function MyQuizzesPage() {
                   className={
                     active
                       ? "text-xs px-2.5 py-1 rounded-full bg-primary text-white transition-colors"
-                      : "text-xs px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-primary hover:text-primary transition-colors"
+                      : "text-xs px-2.5 py-1 rounded-full border border-border text-muted hover:border-primary hover:text-primary transition-colors"
                   }
                 >
                   {tag.name}
@@ -191,7 +191,7 @@ export default function MyQuizzesPage() {
               <button
                 type="button"
                 onClick={() => setSelectedTagIds([])}
-                className="text-xs text-gray-400 hover:text-danger underline ml-1"
+                className="text-xs text-muted hover:text-danger underline ml-1"
               >
                 Bỏ lọc
               </button>
@@ -210,7 +210,7 @@ export default function MyQuizzesPage() {
             ))}
           </div>
         ) : filteredQuizzes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center py-20 text-gray-500 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center text-center py-20 text-muted">
             <FileQuestion size={40} className="mb-3 opacity-60" />
             <p className="font-medium">
               {search ? "Không tìm thấy bộ đề nào phù hợp" : "Bạn chưa tạo bộ đề nào"}

@@ -38,7 +38,7 @@ export default function ImportPanel({
   return (
     <>
       <div className="mb-4">
-        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block mb-2 text-sm font-medium text-foreground/80">
           Upload file Word/PDF (nội dung sẽ đổ vào ô bên dưới để bạn kiểm tra lại)
         </label>
         <label className="inline-flex items-center gap-2 cursor-pointer">
@@ -48,7 +48,7 @@ export default function ImportPanel({
           </span>
           <input type="file" accept=".docx,.pdf" onChange={onFileUpload} className="hidden" />
         </label>
-        {fileLoading && <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Đang đọc file...</p>}
+        {fileLoading && <p className="text-sm text-muted mt-2">Đang đọc file...</p>}
         {fileError && <p className="text-sm text-danger mt-2">{fileError}</p>}
       </div>
 
@@ -74,7 +74,7 @@ export default function ImportPanel({
               <li key={i}>{err}</li>
             ))}
           </ul>
-          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+          <p className="text-sm text-foreground/80 mb-3">
             Nội dung của bạn không đúng định dạng chuẩn. Bạn có thể copy đoạn hướng dẫn dưới đây,
             gửi cho một AI khác (ChatGPT, Gemini...) kèm nội dung gốc, rồi dán kết quả AI trả về vào ô văn bản
             phía trên và bấm &quot;Tách câu hỏi&quot; lại.
