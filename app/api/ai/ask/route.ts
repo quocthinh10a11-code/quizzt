@@ -7,6 +7,11 @@ import { getAuthenticatedContext } from "@/lib/ai/auth";
 import { checkAndRecordRateLimit } from "@/lib/ai/rateLimit";
 
 const MAX_MESSAGE_LENGTH = 500;
+const MAX_QUESTION_CONTENT_LENGTH = 4_000;
+const MAX_OPTIONS = 10;
+const MAX_OPTION_LENGTH = 1_000;
+const MAX_HISTORY_MESSAGES = 6;
+const MAX_HISTORY_MESSAGE_LENGTH = 2_000;
 const ASK_RATE_LIMIT_PER_MINUTE = 10;
 const VALID_SCREEN_CONTEXTS: TutorScreenContext[] = ["practice", "review", "smart_review"];
 const VALID_REVIEW_SOURCES = ["wrong_answer", "bookmark", "note", "manual"];
@@ -50,8 +55,26 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const rawContext = body.questionContext;
+    if (
+      !rawContext ||
+      typeof rawContext !== "object" ||
+      typeof rawContext.content !== "string" ||
+      !rawContext.content.trim() ||
+      rawContext.content.length > MAX_QUESTION_CONTENT_LENGTH ||
+      !Array.isArray(rawContext.options) ||
+      rawContext.options.length === 0 ||
+      rawContext.options.length > MAX_OPTIONS ||
+      !rawContext.options.every(
+        (option: unknown) => typeof option === "string" && option.length <= MAX_OPTION_LENGTH
+      )
+    ) {
+      return NextResponse.json({ error: "Invalid question context." }, { status: 400 });
+    }
     const submitted: boolean = body.submitted === true;
     const history: ChatMessage[] = body.history ?? [];
+    if (!isValidHistory(history)) {
+      return NextResponse.json({ error: "Invalid chat history." }, { status: 400 });
+    }
     const userMessage: string = body.userMessage;
 
     if (!rawContext || !rawContext.content || !Array.isArray(rawContext.options)) {
@@ -95,6 +118,15 @@ export async function POST(req: NextRequest) {
     // "mode"/"visibility" tự ý gửi từ client. Nguyên tắc bảo mật này giữ nguyên từ các bước trước.
     const mode: TutorMode = submitted ? "review" : "learning";
 
+    if (
+      submitted &&
+      (!Number.isInteger(rawContext.correctIndex) ||
+        rawContext.correctIndex < 0 ||
+        rawContext.correctIndex >= rawContext.options.length)
+    ) {
+      return NextResponse.json({ error: "Invalid correct answer." }, { status: 400 });
+    }
+
     const questionContext: TutorQuestionContext = {
       content: String(rawContext.content),
       options: rawContext.options.map((o: unknown) => String(o)),
@@ -108,4 +140,19 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : "Lỗi không xác định.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+function isValidHistory(value: unknown): value is ChatMessage[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= MAX_HISTORY_MESSAGES &&
+    value.every(
+      (message) =>
+        message &&
+        typeof message === "object" &&
+        (message.role === "user" || message.role === "assistant") &&
+        typeof message.content === "string" &&
+        message.content.length <= MAX_HISTORY_MESSAGE_LENGTH
+    )
+  );
 }
