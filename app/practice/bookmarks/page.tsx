@@ -168,8 +168,12 @@ export default function BookmarksPracticePage() {
     }
   }
 
-  function handleExit() {
-    const confirmed = window.confirm("Kết quả của bạn sẽ không được tính. Xác nhận thoát?");
+  async function handleExit() {
+    const confirmed = await confirm({
+      title: "Rời khỏi bài làm?",
+      description: "Kết quả của bạn sẽ không được tính. Bạn có chắc muốn rời khỏi bài làm?",
+      confirmLabel: "Rời bài",
+    });
     if (confirmed) {
       session.forceExit();
       router.push("/");
