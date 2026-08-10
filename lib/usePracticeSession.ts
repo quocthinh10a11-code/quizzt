@@ -22,9 +22,17 @@ type Params = {
   storageKey: string;
 };
 
-const EXIT_WARNING_MESSAGE = "Kết quả của bạn sẽ không được tính. Xác nhận rời khỏi bài làm?";
+const EXIT_WARNING_MESSAGE =
+  "Kết quả của bạn sẽ không được tính. Xác nhận rời khỏi bài làm?";
 
-export function usePracticeSession({ questions, userId, quizId, quizTitle, attemptType, storageKey }: Params) {
+export function usePracticeSession({
+  questions,
+  userId,
+  quizId,
+  quizTitle,
+  attemptType,
+  storageKey,
+}: Params) {
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 
@@ -156,12 +164,15 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
     }
 
     async function handleDocumentClick(e: MouseEvent) {
-      const anchor = (e.target as HTMLElement)?.closest("a[href]") as HTMLAnchorElement | null;
+      const anchor = (e.target as HTMLElement)?.closest(
+        "a[href]",
+      ) as HTMLAnchorElement | null;
       if (!anchor) return;
 
       const href = anchor.getAttribute("href");
       if (!href || href.startsWith("#")) return;
-      if (anchor.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (anchor.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey)
+        return;
 
       e.preventDefault();
       e.stopPropagation();
@@ -204,7 +215,12 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
 
     function handleKeyboard(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
-      if (target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)) return;
+      if (
+        target?.isContentEditable ||
+        (target &&
+          ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName))
+      )
+        return;
 
       if (event.key >= "1" && event.key <= "4") {
         const optionIndex = Number(event.key) - 1;
@@ -238,7 +254,9 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
   }, [started, submitted, currentIndex, questions]);
 
   function formatTime(seconds: number) {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   }

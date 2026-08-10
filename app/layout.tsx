@@ -15,23 +15,32 @@ const beVietnamPro = Be_Vietnam_Pro({
   display: "swap",
 });
 
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "Quizzt — Học nhẹ nhàng, nhớ lâu hơn",
   description: "Không gian luyện tập và ôn tập dành cho học sinh, sinh viên.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className={`${beVietnamPro.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
+    <html
+      lang="vi"
+      className={`${beVietnamPro.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>
               <ConfirmProvider>
                 <Navbar />
-              <main className="flex-1">{children}</main>
+                <main className="flex-1">{children}</main>
                 <Footer />
               </ConfirmProvider>
             </ToastProvider>

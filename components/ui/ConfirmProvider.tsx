@@ -12,20 +12,27 @@ type ConfirmOptions = {
 
 type Request = ConfirmOptions & { resolve: (value: boolean) => void };
 
-const ConfirmContext = createContext<((options: ConfirmOptions) => Promise<boolean>) | null>(null);
+const ConfirmContext = createContext<
+  ((options: ConfirmOptions) => Promise<boolean>) | null
+>(null);
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [request, setRequest] = useState<Request | null>(null);
 
   const confirm = useCallback((options: ConfirmOptions) => {
-    return new Promise<boolean>((resolve) => setRequest({ ...options, resolve }));
+    return new Promise<boolean>((resolve) =>
+      setRequest({ ...options, resolve }),
+    );
   }, []);
 
-  const close = useCallback((result: boolean) => {
-    if (!request) return;
-    request.resolve(result);
-    setRequest(null);
-  }, [request]);
+  const close = useCallback(
+    (result: boolean) => {
+      if (!request) return;
+      request.resolve(result);
+      setRequest(null);
+    },
+    [request],
+  );
 
   return (
     <ConfirmContext.Provider value={confirm}>
@@ -45,6 +52,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 
 export function useConfirm() {
   const confirm = useContext(ConfirmContext);
-  if (!confirm) throw new Error("useConfirm must be used inside ConfirmProvider");
+  if (!confirm)
+    throw new Error("useConfirm must be used inside ConfirmProvider");
   return { confirm };
 }
