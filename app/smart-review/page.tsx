@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2, LogOut, ArrowLeft, Layers, Brain, Check, X, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -31,6 +32,7 @@ const QUALITY_BUTTONS: { value: ReviewQuality; label: string; className: string 
 export default function SmartReviewPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { confirm } = useConfirm();
   const [allDue, setAllDue] = useState<DueReviewQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export default function SmartReviewPage() {
   function handleChooseGroup(key:string){setSelectedGroupKey(key);setQualityChoices({});setAiReasons({});setAiError("");session.resetSession();}
   async function handleAskAi(){setAiLoading(true);setAiError("");const items=groupQuestions.slice(0,30).map(q=>({questionId:q.questionId,content:q.content,quizTitle:q.quizTitle,difficulty:q.difficulty,intervalDays:q.intervalDays,reviewCount:q.reviewCount,source:q.source,daysSinceLastReview:daysBetween(q.lastReviewedAt)}));try{const {data}=await supabase.auth.getSession();const accessToken=data.session?.access_token;if(!accessToken){setAiError("Bạn cần đăng nhập để dùng gợi ý AI.");return;}const res=await fetch("/api/ai/recommend",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${accessToken}`},body:JSON.stringify({items})});const body=await res.json();if(!res.ok){setAiError(body.error??"Không thể lấy gợi ý AI.");return;}const map:Record<number,AiReason>={};for(const r of body.result)map[r.questionId]={priority:r.priority,reason:r.reason};setAiReasons(map);}catch{setAiError("Lỗi kết nối tới máy chủ AI.");}finally{setAiLoading(false);}}
   function handleBackToSelection(){session.stopTimer();setSelectedGroupKey(null);}
-  function handleExit(){if(window.confirm("Kết quả của bạn sẽ không được tính. Xác nhận thoát?")){session.forceExit();router.push("/");}}
+  async function handleExit(){const confirmed=await confirm({title:"Rời khỏi bài làm?",description:"Kết quả của bạn sẽ không được tính. Bạn có chắc muốn rời khỏi bài làm?",confirmLabel:"Rời bài"});if(confirmed){session.forceExit();router.push("/");}}
   async function handleSubmit(){await session.handleSubmit();}
   function handleChooseQuality(questionId:number,quality:ReviewQuality){setQualityChoices(prev=>({...prev,[questionId]:quality}));}
   const allQualityChosen=activeQuestions.length>0&&activeQuestions.every(q=>qualityChoices[q.questionId]!==undefined);

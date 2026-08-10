@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { saveQuizAttempt, type AttemptType } from "@/lib/quizAttempts";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 export type PracticeQuestion = {
   id: number;
@@ -25,6 +26,7 @@ const EXIT_WARNING_MESSAGE = "Kết quả của bạn sẽ không được tính
 
 export function usePracticeSession({ questions, userId, quizId, quizTitle, attemptType, storageKey }: Params) {
   const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
@@ -153,7 +155,7 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
       e.returnValue = "";
     }
 
-    function handleDocumentClick(e: MouseEvent) {
+    async function handleDocumentClick(e: MouseEvent) {
       const anchor = (e.target as HTMLElement)?.closest("a[href]") as HTMLAnchorElement | null;
       if (!anchor) return;
 
@@ -161,17 +163,24 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
       if (!href || href.startsWith("#")) return;
       if (anchor.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;
 
-      const confirmed = window.confirm(EXIT_WARNING_MESSAGE);
-      if (!confirmed) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+      e.preventDefault();
+      e.stopPropagation();
+      const confirmed = await confirm({
+        title: "Rời khỏi bài làm?",
+        description: EXIT_WARNING_MESSAGE,
+        confirmLabel: "Rời bài",
+      });
+      if (confirmed) window.location.assign(href);
     }
 
     window.history.pushState(null, "", window.location.href);
 
-    function handlePopState() {
-      const confirmed = window.confirm(EXIT_WARNING_MESSAGE);
+    async function handlePopState() {
+      const confirmed = await confirm({
+        title: "Rời khỏi bài làm?",
+        description: EXIT_WARNING_MESSAGE,
+        confirmLabel: "Rời bài",
+      });
       if (confirmed) {
         window.history.back();
       } else {
@@ -189,6 +198,44 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
       window.removeEventListener("popstate", handlePopState);
     };
   }, [started, submitted]);
+
+  useEffect(() => {
+    if (!started || submitted) return;
+
+    function handleKeyboard(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)) return;
+
+      if (event.key >= "1" && event.key <= "4") {
+        const optionIndex = Number(event.key) - 1;
+        if (optionIndex < (questions[currentIndex]?.options.length ?? 0)) {
+          event.preventDefault();
+          handleSelect(optionIndex);
+        }
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        handlePrevious();
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        handleNext();
+        return;
+      }
+
+      if (event.key === "Enter" && currentIndex === questions.length - 1) {
+        event.preventDefault();
+        void handleSubmit();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, [started, submitted, currentIndex, questions]);
 
   function formatTime(seconds: number) {
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");

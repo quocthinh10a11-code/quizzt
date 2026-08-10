@@ -21,6 +21,7 @@ import Badge from "@/components/ui/Badge";
 import NoteEditor from "@/components/NoteEditor";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSession";
 import { addToReviewQueue } from "@/lib/reviewQueue";
 import AiTutorChat from "@/components/ai/AiTutorChat";
@@ -46,6 +47,7 @@ export default function PracticePage() {
   const quizId = Number(params.id);
   const router = useRouter();
   const { user } = useAuth();
+  const { confirm } = useConfirm();
 
   const [quizTitle, setQuizTitle] = useState("");
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
@@ -150,10 +152,8 @@ export default function PracticePage() {
     }
   }
 
-  function handleExit() {
-    const confirmed = window.confirm(
-      "Kết quả của bạn sẽ không được tính. Xác nhận thoát?"
-    );
+  async function handleExit() {
+    const confirmed = await confirm({ title: "Rời khỏi bài làm?", description: "Kết quả của bạn sẽ không được tính. Bạn có chắc muốn rời khỏi bài làm?", confirmLabel: "Rời bài" });
 
     if (confirmed) {
       session.forceExit();
@@ -470,7 +470,7 @@ export default function PracticePage() {
                     <button
                       key={i}
                       onClick={() => session.setCurrentIndex(i)}
-                      aria-label={`Đi đến câu ${i + 1}`}
+                      aria-label={`Đi đến câu ${i + 1}${bookmarkedIds?.has?.(questions[i]?.id) ? ", đã đánh dấu" : ""}`}
                       className={cn(
                         "relative h-9 rounded-lg text-xs font-semibold border transition-all duration-150",
                         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",

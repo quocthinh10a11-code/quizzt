@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2, Bookmark, BookmarkCheck, LogOut, ArrowLeft, Layers } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -35,6 +36,7 @@ const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
 export default function BookmarksPracticePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { confirm } = useConfirm();
 
   const [allQuestions, setAllQuestions] = useState<BookmarkedQuestion[]>([]);
   const [loading, setLoading] = useState(true);
