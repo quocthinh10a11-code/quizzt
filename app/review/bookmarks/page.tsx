@@ -100,7 +100,15 @@ export default function BookmarksReviewPage() {
           const isCorrect = selected === question.correct_index;
 
           return (
-            <Card key={question.id} className={cn("p-5 border-l-4", isCorrect ? "border-l-success" : "border-l-danger")}>
+            <Card
+              key={question.id}
+              className={cn(
+                "p-5 border",
+                isCorrect
+                  ? "border-success/20 bg-success-soft/40"
+                  : "border-danger/20 bg-danger-soft/40"
+              )}
+            >
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="flex items-start gap-2">
                   {isCorrect ? (
@@ -154,9 +162,9 @@ export default function BookmarksReviewPage() {
                       key={optIndex}
                       className={cn(
                         "px-3 py-2 rounded-lg border text-sm",
-                        isTheCorrectOne && "border-success bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300",
-                        isSelected && !isCorrect && "border-danger bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300",
-                        !isTheCorrectOne && !(isSelected && !isCorrect) && "border-border text-foreground/80"
+                        isTheCorrectOne && "border-success bg-success-soft text-foreground",
+                        isSelected && !isCorrect && "border-danger bg-danger-soft text-foreground",
+                        !isTheCorrectOne && !(isSelected && !isCorrect) && "border-border text-foreground/80 bg-surface"
                       )}
                     >
                       {String.fromCharCode(65 + optIndex)}. {option}
