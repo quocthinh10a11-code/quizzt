@@ -1,4 +1,6 @@
-export type LearningActionType = "REVIEW_DUE" | "CONTINUE" | "DISCOVER";
+import type { WeakChapter } from "@/lib/weakChapter";
+
+export type LearningActionType = "REVIEW_DUE" | "WEAK_CHAPTER" | "CONTINUE" | "DISCOVER";
 
 export type RecentLearningCandidate = {
   quizId: number;
@@ -14,28 +16,32 @@ export type LearningNextAction = {
   metadata?: {
     dueCount?: number;
     quizId?: number;
+    chapterId?: number;
+    accuracy?: number;
+    uniqueQuestionCount?: number;
+    answerCount?: number;
   };
 };
 
 export type LearningNextActionInput = {
   dueReviewCount: number;
+  weakChapter: WeakChapter | null;
   recentLearning: RecentLearningCandidate | null;
   hasCatalog: boolean;
 };
 
 /**
- * Deterministic MVP decision layer for the Home learning entry point.
+ * Deterministic learning decision layer for the Home learning entry point.
  *
  * Priority:
  * 1. Due review items
- * 2. Recent learning
- * 3. Discover/create content
- *
- * Weak-topic recommendation is intentionally not included until the current
- * data model can provide a reliable subject/chapter accuracy signal.
+ * 2. Weak chapter with sufficient evidence
+ * 3. Recent learning
+ * 4. Discover/create content
  */
 export function getLearningNextAction({
   dueReviewCount,
+  weakChapter,
   recentLearning,
   hasCatalog,
 }: LearningNextActionInput): LearningNextAction {
@@ -47,6 +53,23 @@ export function getLearningNextAction({
       ctaLabel: "Ôn tập ngay",
       target: "/smart-review",
       metadata: { dueCount: dueReviewCount },
+    };
+  }
+
+  if (weakChapter) {
+    const subjectPrefix = weakChapter.subjectName ? `${weakChapter.subjectName} · ` : "";
+    return {
+      type: "WEAK_CHAPTER",
+      title: "Nên luyện thêm",
+      reason: `${subjectPrefix}${weakChapter.chapterName} · ${weakChapter.accuracy}% đúng trên ${weakChapter.uniqueQuestionCount} câu đã làm.`,
+      ctaLabel: "Luyện chương này",
+      target: `/practice/chapter-${weakChapter.chapterId}`,
+      metadata: {
+        chapterId: weakChapter.chapterId,
+        accuracy: weakChapter.accuracy,
+        uniqueQuestionCount: weakChapter.uniqueQuestionCount,
+        answerCount: weakChapter.answerCount,
+      },
     };
   }
 

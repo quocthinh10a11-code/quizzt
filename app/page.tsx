@@ -16,6 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getDueReviewCountResult } from "@/lib/reviewQueue";
 import { getUserAttemptsResult, type AttemptSummary } from "@/lib/quizAttempts";
 import { getLearningNextAction } from "@/lib/learningNextAction";
+import { getWeakChapterResult, type WeakChapter } from "@/lib/weakChapter";
 
 type QuizRow = {
   id: number;
@@ -41,6 +42,7 @@ export default function HomePage() {
   const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
   const [recentAttempts, setRecentAttempts] = useState<AttemptSummary[]>([]);
   const [dueReviewCount, setDueReviewCount] = useState(0);
+  const [weakChapter, setWeakChapter] = useState<WeakChapter | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
   const [tagsByQuiz, setTagsByQuiz] = useState<Record<number, Tag[]>>({});
@@ -62,13 +64,14 @@ export default function HomePage() {
       setError("");
       setLearningError("");
 
-      const [quizResult, dueResult, attemptsResult, profileResult] = await Promise.all([
+      const [quizResult, dueResult, attemptsResult, weakChapterResult, profileResult] = await Promise.all([
         supabase
           .from("quizzes")
           .select("id, title, description, updated_at, user_id, is_public, questions:questions(count)")
           .order("updated_at", { ascending: false }),
         getDueReviewCountResult(userId),
         getUserAttemptsResult(userId, ["quiz"], 10),
+        getWeakChapterResult(userId),
         supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
       ]);
 
@@ -111,9 +114,11 @@ export default function HomePage() {
           setLearningError("Không thể xác định việc học tiếp theo lúc này.");
           setDueReviewCount(0);
           setRecentAttempts([]);
+          setWeakChapter(null);
         } else {
           setDueReviewCount(dueResult.count);
           setRecentAttempts(attemptsResult.data);
+          setWeakChapter(weakChapterResult.error ? null : weakChapterResult.data);
         }
         setUsername(profileResult.data?.username ?? null);
         setLoading(false);
@@ -149,9 +154,10 @@ export default function HomePage() {
   const recentQuiz = validRecentAttempts[0];
   const hasRecentLearning = !!recentQuiz;
   const hasCatalog = quizzes.length > 0;
-  const isNewUser = !hasRecentLearning && dueReviewCount === 0 && !learningError;
+  const isNewUser = !hasRecentLearning && dueReviewCount === 0 && !weakChapter && !learningError;
   const nextAction = getLearningNextAction({
     dueReviewCount,
+    weakChapter,
     recentLearning: recentQuiz
       ? { quizId: recentQuiz.quiz_id!, quizTitle: recentQuiz.quiz_title }
       : null,
