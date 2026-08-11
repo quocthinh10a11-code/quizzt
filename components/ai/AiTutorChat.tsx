@@ -37,6 +37,9 @@ type Props = {
   // instance AiTutorChat tại 1 thời điểm — tránh nhiều nút nổi "Hỏi AI" chồng đè lên nhau
   // nếu mount nhiều instance cùng lúc (mỗi instance mặc định fixed ở cùng 1 vị trí góc màn hình).
   autoOpen?: boolean;
+  // Optional label cho nút mở AI. Nếu không truyền, sau khi nộp bài
+  // nút trở thành learning action "Giải thích với AI".
+  triggerLabel?: string;
   // Danh sách nút gợi ý, hiển thị khi chưa có tin nhắn nào trong hội thoại.
   // Component KHÔNG tự quyết định nội dung — dữ liệu này do trang gọi tự tính
   // bằng helper dùng chung buildQuickActions() rồi truyền vào. Mặc định [] để
@@ -51,6 +54,7 @@ export default function AiTutorChat({
   screenContext = "practice",
   reviewMeta,
   autoOpen = false,
+  triggerLabel,
   quickActions = [],
 }: Props) {
   const [open, setOpen] = useState(autoOpen);
@@ -61,6 +65,7 @@ export default function AiTutorChat({
   const scrollRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
   const prevResetKey = useRef(resetKey);
+  const resolvedTriggerLabel = triggerLabel ?? (submitted ? "Giải thích với AI" : "Hỏi AI");
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -166,7 +171,7 @@ export default function AiTutorChat({
         className="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-4 py-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary-hover transition-all"
       >
         <MessageCircle size={18} />
-        <span className="text-sm font-medium">Hỏi AI</span>
+        <span className="text-sm font-medium">{resolvedTriggerLabel}</span>
       </button>
     );
   }
