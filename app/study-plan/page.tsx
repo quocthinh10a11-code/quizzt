@@ -60,7 +60,10 @@ export default function StudyPlanPage() {
   }, []);
 
   useEffect(() => {
-    void loadPlan();
+    const task = window.setTimeout(() => {
+      void loadPlan();
+    }, 0);
+    return () => window.clearTimeout(task);
   }, [loadPlan]);
 
   return (
