@@ -74,7 +74,8 @@ export default function LearningInsightCard({ attemptId }: Props) {
       }
 
       const rawIds: unknown[] = Array.isArray(data.questionIds) ? data.questionIds : [];
-      const ids = [...new Set(rawIds.filter((id): id is number => Number.isInteger(id) && id > 0))].slice(0, 10);
+      const validIds = rawIds.filter((id: unknown): id is number => Number.isInteger(id) && id > 0);
+      const ids = Array.from(new Set<number>(validIds)).slice(0, 10);
       if (ids.length === 0) {
         setAdaptiveError("Chưa tìm được câu hỏi phù hợp. Bạn có thể tiếp tục với các lựa chọn học hiện có.");
         return;
