@@ -199,7 +199,7 @@ export default function PracticePage() {
               min={1}
               label="Thời gian làm bài (phút)"
               value={session.minutesInput}
-              onChange={(e) => setMinutesInput(e.target.value.replace(/[^0-9]/g, ""))}
+              onChange={(e) => session.setMinutesInput(e.target.value.replace(/[^0-9]/g, ""))}
               disabled={session.noLimit}
             />
           </div>
