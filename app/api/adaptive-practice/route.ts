@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (!authContext) return NextResponse.json({ error: "Bạn cần đăng nhập để sử dụng tính năng này." }, { status: 401 });
 
     const { supabase, userId } = authContext;
-    const rateLimitResult = await checkAndRecordRateLimit(supabase, userId, "insight", ADAPTIVE_RATE_LIMIT_PER_MINUTE);
+    const rateLimitResult = await checkAndRecordRateLimit(supabase, userId, "adaptive_practice", ADAPTIVE_RATE_LIMIT_PER_MINUTE);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: `Bạn đã yêu cầu luyện tập quá nhanh. Vui lòng đợi ${rateLimitResult.retryAfterSeconds} giây rồi thử lại.` },
