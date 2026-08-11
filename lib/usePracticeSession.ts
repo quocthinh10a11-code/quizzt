@@ -29,6 +29,7 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const [attemptId, setAttemptId] = useState<number | null>(null);
 
   const [started, setStarted] = useState(false);
   const [minutesInput, setMinutesInput] = useState("15");
@@ -41,12 +42,14 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
   // Reset câu trả lời mỗi khi danh sách câu hỏi thay đổi (ví dụ đổi bộ đề đang chọn)
   useEffect(() => {
     setAnswers(Array(questions.length).fill(null));
+    setAttemptId(null);
   }, [questions]);
 
   function resetSession() {
     setAnswers(Array(questions.length).fill(null));
     setCurrentIndex(0);
     setSubmitted(false);
+    setAttemptId(null);
     setStarted(false);
     setTimeLeft(null);
     if (intervalRef.current) {
@@ -105,7 +108,7 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
       is_correct: answers[i] === q.correct_index,
     }));
 
-    const { error } = await saveQuizAttempt({
+    const { attemptId: savedAttemptId, error } = await saveQuizAttempt({
       userId,
       quizId,
       quizTitle,
@@ -113,6 +116,10 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
       answers: attemptAnswers,
       attemptType,
     });
+
+    if (savedAttemptId !== null) {
+      setAttemptId(savedAttemptId);
+    }
 
     if (error) {
       showToast("Không thể lưu lịch sử làm bài: " + error, "error");
@@ -210,6 +217,7 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
     setCurrentIndex,
     answers,
     submitted,
+    attemptId,
     started,
     minutesInput,
     setMinutesInput,
