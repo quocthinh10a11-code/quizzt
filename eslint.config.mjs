@@ -7,6 +7,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     files: [
+      "app/login/page.tsx",
       "app/review/**/*.tsx",
       "app/smart-review/page.tsx",
       "components/Navbar.tsx",
