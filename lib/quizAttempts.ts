@@ -9,6 +9,8 @@ export type AttemptAnswerInput = {
   is_correct: boolean;
 };
 
+export type AttemptType = "quiz" | "bookmark" | "weak_topics" | "ai_generated" | "review_queue" | "adaptive";
+
 export async function saveQuizAttempt(params: {
   userId: string;
   quizId: number | null;
@@ -55,7 +57,6 @@ export async function saveQuizAttempt(params: {
 
   return { attemptId: attempt.id, error: null };
 }
-export type AttemptType = "quiz" | "bookmark" | "weak_topics" | "ai_generated" | "review_queue";
 
 export type AttemptSummary = {
   id: number;
@@ -68,11 +69,16 @@ export type AttemptSummary = {
   created_at: string;
 };
 
-export async function getUserAttempts(
+export type UserAttemptsResult = {
+  data: AttemptSummary[];
+  error: string | null;
+};
+
+export async function getUserAttemptsResult(
   userId: string,
   attemptTypes?: AttemptType[],
   limit: number = 50
-): Promise<AttemptSummary[]> {
+): Promise<UserAttemptsResult> {
   let query = supabase
     .from("quiz_attempts")
     .select("id, quiz_id, quiz_title, total_questions, correct_count, time_taken_seconds, attempt_type, created_at")
@@ -86,8 +92,20 @@ export async function getUserAttempts(
 
   const { data, error } = await query;
 
-  if (error || !data) return [];
-  return data;
+  if (error || !data) {
+    return { data: [], error: error?.message ?? "Không thể tải lịch sử học tập." };
+  }
+
+  return { data, error: null };
+}
+
+export async function getUserAttempts(
+  userId: string,
+  attemptTypes?: AttemptType[],
+  limit: number = 50
+): Promise<AttemptSummary[]> {
+  const result = await getUserAttemptsResult(userId, attemptTypes, limit);
+  return result.data;
 }
 
 const HISTORY_PAGE_SIZE = 20;
@@ -98,7 +116,7 @@ export async function getUserAttemptsPage(
   attemptTypes?: AttemptType[]
 ): Promise<{ items: AttemptSummary[]; hasMore: boolean }> {
   const from = page * HISTORY_PAGE_SIZE;
-  const to = from + HISTORY_PAGE_SIZE; // lấy dư 1 dòng để biết còn trang sau không
+  const to = from + HISTORY_PAGE_SIZE;
 
   let query = supabase
     .from("quiz_attempts")

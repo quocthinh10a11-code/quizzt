@@ -126,17 +126,28 @@ export async function getDueReviewQuestions(userId: string): Promise<DueReviewQu
     .filter(Boolean) as DueReviewQuestion[];
 }
 
-// Số câu đến hạn hôm nay (dùng hiển thị badge nhanh, không cần load hết chi tiết)
-export async function getDueReviewCount(userId: string): Promise<number> {
+export async function getDueReviewCountResult(
+  userId: string
+): Promise<{ count: number; error: string | null }> {
   const today = new Date().toISOString().slice(0, 10);
 
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("review_queue")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .lte("next_review_date", today);
 
-  return count ?? 0;
+  if (error) {
+    return { count: 0, error: error.message };
+  }
+
+  return { count: count ?? 0, error: null };
+}
+
+// Số câu đến hạn hôm nay (dùng hiển thị badge nhanh, không cần load hết chi tiết)
+export async function getDueReviewCount(userId: string): Promise<number> {
+  const result = await getDueReviewCountResult(userId);
+  return result.count;
 }
 
 // Cập nhật chu kỳ sau khi ôn xong 1 câu: đúng thì nhân đôi, sai thì reset về 1 ngày
