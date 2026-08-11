@@ -84,7 +84,7 @@ export default function LearningInsightCard({ attemptId }: Props) {
         setAdaptiveError("Chưa tìm được câu hỏi phù hợp. Bạn có thể tiếp tục với các lựa chọn học hiện có.");
         return;
       }
-      router.push(`/practice/adaptive/${ids.join(",")}`);
+      router.push(`/practice/adaptive/${ids.join(",")}?attemptId=${attemptId}`);
     } catch {
       setAdaptiveError("Không thể kết nối tới máy chủ luyện tập.");
     } finally {
