@@ -13,9 +13,9 @@ type ToastContextType = {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 const variantClasses: Record<ToastVariant, string> = {
-  success: "bg-success text-white",
-  error: "bg-danger text-white",
-  info: "bg-gray-900 text-white dark:bg-white dark:text-black",
+  success: "border border-success/15 bg-success-soft text-foreground",
+  error: "border border-danger/15 bg-danger-soft text-danger",
+  info: "border border-border bg-surface text-foreground",
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -26,22 +26,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => [...prev, { id, message, variant }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    }, 3200);
   }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2">
+      <div className="fixed bottom-5 right-5 z-50 flex max-w-[min(92vw,28rem)] flex-col gap-2">
         {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            role="status"
-            className={cn(
-              "rounded-lg px-4 py-3 text-sm shadow-lg animate-in fade-in slide-in-from-bottom-2",
-              variantClasses[toast.variant]
-            )}
-          >
+          <div key={toast.id} role="status" className={cn("rounded-xl px-4 py-3 text-sm shadow-lg shadow-black/10 animate-fade-up", variantClasses[toast.variant])}>
             {toast.message}
           </div>
         ))}
@@ -52,8 +45,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
 export function useToast() {
   const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast phải được dùng bên trong ToastProvider");
-  }
+  if (!context) throw new Error("useToast phải được dùng bên trong ToastProvider");
   return context;
 }

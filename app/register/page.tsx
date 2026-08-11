@@ -55,7 +55,7 @@ export default function RegisterPage() {
           <h1 className="mt-4 text-xl font-semibold text-black dark:text-white">
             Tạo tài khoản mới
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-muted">
             Bắt đầu tự tạo bộ đề ôn tập của riêng bạn
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function RegisterPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-6 text-center text-sm text-muted">
           Đã có tài khoản?{" "}
           <Link href="/login" className="text-primary font-medium hover:underline">
             Đăng nhập

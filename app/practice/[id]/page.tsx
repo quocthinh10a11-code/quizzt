@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSession";
 import { addToReviewQueue } from "@/lib/reviewQueue";
 import AiTutorChat from "@/components/ai/AiTutorChat";
+import LearningInsightCard from "@/components/ai/LearningInsightCard";
 import { buildQuickActions } from "@/lib/ai/quickActions";
 
 const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
@@ -361,27 +362,31 @@ export default function PracticePage() {
           </Card>
         </>
       ) : (
-        <Card className="p-8 text-center">
-          <CheckCircle2 size={40} className="mx-auto text-success mb-3" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kết quả</h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
-            Đúng{" "}
-            <span className="text-primary font-semibold">
-              {questions.filter((q, i) => session.answers[i] === q.correct_index).length}
-            </span>
-            /{questions.length} câu
-          </p>
+        <>
+          <Card className="p-8 text-center">
+            <CheckCircle2 size={40} className="mx-auto text-success mb-3" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kết quả</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
+              Đúng{" "}
+              <span className="text-primary font-semibold">
+                {questions.filter((q, i) => session.answers[i] === q.correct_index).length}
+              </span>
+              /{questions.length} câu
+            </p>
 
-          {isChapterPractice ? (
-            <Button onClick={() => router.push("/")} variant="primary" size="lg">
-              Về trang chủ
-            </Button>
-          ) : (
-            <Button onClick={() => router.push(`/review/${quizId}`)} variant="primary" size="lg">
-              Xem lại đáp án
-            </Button>
-          )}
-        </Card>
+            {isChapterPractice ? (
+              <Button onClick={() => router.push("/")} variant="primary" size="lg">
+                Về trang chủ
+              </Button>
+            ) : (
+              <Button onClick={() => router.push(`/review/${quizId}`)} variant="primary" size="lg">
+                Xem lại đáp án
+              </Button>
+            )}
+          </Card>
+
+          {session.attemptId !== null && <LearningInsightCard attemptId={session.attemptId} />}
+        </>
       )}
 
       {session.started && (

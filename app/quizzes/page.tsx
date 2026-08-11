@@ -36,27 +36,29 @@ export default function MyQuizzesPage() {
   const [tagsByQuiz, setTagsByQuiz] = useState<Record<number, Tag[]>>({});
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+
   useEffect(() => {
-  if (!user) return;
-  async function loadFilters() {
-    const { data: subjectData } = await supabase
-      .from("subjects")
-      .select("id, name")
-      .eq("user_id", user!.id)
-      .order("name");
-    setSubjects(subjectData ?? []);
+    if (!user) return;
+    async function loadFilters() {
+      const { data: subjectData } = await supabase
+        .from("subjects")
+        .select("id, name")
+        .eq("user_id", user!.id)
+        .order("name");
+      setSubjects(subjectData ?? []);
 
-    const { data: chapterData } = await supabase
-      .from("chapters")
-      .select("id, name, subject_id")
-      .in("subject_id", (subjectData ?? []).map((s) => s.id));
-    setChapters(chapterData ?? []);
+      const { data: chapterData } = await supabase
+        .from("chapters")
+        .select("id, name, subject_id")
+        .in("subject_id", (subjectData ?? []).map((s) => s.id));
+      setChapters(chapterData ?? []);
 
-    const userTags = await getUserTags(user!.id);
-    setAllTags(userTags);
-  }
-  loadFilters();
-}, [user]);
+      const userTags = await getUserTags(user!.id);
+      setAllTags(userTags);
+    }
+    loadFilters();
+  }, [user]);
+
   useEffect(() => {
     if (authLoading || !user) return;
 
@@ -92,42 +94,43 @@ export default function MyQuizzesPage() {
   }
 
   const chaptersOfSelectedSubject = useMemo(() => {
-  if (filterSubject === "all") return [];
-  return chapters.filter((c) => c.subject_id === Number(filterSubject));
-}, [chapters, filterSubject]);
+    if (filterSubject === "all") return [];
+    return chapters.filter((c) => c.subject_id === Number(filterSubject));
+  }, [chapters, filterSubject]);
 
-const filteredQuizzes = useMemo(() => {
-  const q = search.trim().toLowerCase();
-  let result = quizzes;
+  const filteredQuizzes = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let result = quizzes;
 
-  if (q) {
-    result = result.filter((quiz) => quiz.title.toLowerCase().includes(q));
-  }
+    if (q) {
+      result = result.filter((quiz) => quiz.title.toLowerCase().includes(q));
+    }
 
-  if (filterChapter !== "all") {
-    result = result.filter((quiz) => quiz.chapter_id === Number(filterChapter));
-  } else if (filterSubject !== "all") {
-    const chapterIds = new Set(chaptersOfSelectedSubject.map((c) => c.id));
-    result = result.filter((quiz) => quiz.chapter_id !== null && chapterIds.has(quiz.chapter_id));
-  }
+    if (filterChapter !== "all") {
+      result = result.filter((quiz) => quiz.chapter_id === Number(filterChapter));
+    } else if (filterSubject !== "all") {
+      const chapterIds = new Set(chaptersOfSelectedSubject.map((c) => c.id));
+      result = result.filter((quiz) => quiz.chapter_id !== null && chapterIds.has(quiz.chapter_id));
+    }
 
-  if (selectedTagIds.length > 0) {
-    result = result.filter((quiz) => {
-      const quizTagIds = (tagsByQuiz[quiz.id] ?? []).map((t) => t.id);
-      return selectedTagIds.some((id) => quizTagIds.includes(id));
-    });
-  }
+    if (selectedTagIds.length > 0) {
+      result = result.filter((quiz) => {
+        const quizTagIds = (tagsByQuiz[quiz.id] ?? []).map((t) => t.id);
+        return selectedTagIds.some((id) => quizTagIds.includes(id));
+      });
+    }
 
-  return result;
-}, [quizzes, search, filterSubject, filterChapter, chaptersOfSelectedSubject, selectedTagIds, tagsByQuiz]);
+    return result;
+  }, [quizzes, search, filterSubject, filterChapter, chaptersOfSelectedSubject, selectedTagIds, tagsByQuiz]);
+
   return (
     <RequireAuth>
       <div className="p-8 max-w-6xl mx-auto">
-        <div className="flex justify-between items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <h1 className="text-2xl font-bold text-foreground">
             Bộ đề của bạn
           </h1>
-          <Link href="/quizzes/create" className="hidden sm:block">
+          <Link href="/quizzes/create" className="shrink-0">
             <Button variant="primary" leftIcon={<Plus size={16} />}>
               Tạo bộ đề
             </Button>
@@ -142,58 +145,59 @@ const filteredQuizzes = useMemo(() => {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="mb-4 flex flex-col sm:flex-row gap-3 max-w-2xl">
-  <div className="w-full sm:w-56">
-    <Select
-      options={[{ value: "all", label: "Tất cả môn học" }, ...subjects.map((s) => ({ value: String(s.id), label: s.name }))]}
-      value={filterSubject}
-      onChange={(e) => {
-        setFilterSubject(e.target.value);
-        setFilterChapter("all");
-      }}
-    />
-  </div>
-  <div className="w-full sm:w-56">
-    <Select
-      options={[{ value: "all", label: "Tất cả chương" }, ...chaptersOfSelectedSubject.map((c) => ({ value: String(c.id), label: c.name }))]}
-      value={filterChapter}
-      onChange={(e) => setFilterChapter(e.target.value)}
-      disabled={filterSubject === "all"}
-    />
-  </div>
-</div>
 
-{allTags.length > 0 && (
-  <div className="mb-6 flex flex-wrap items-center gap-2">
-    <span className="text-sm text-gray-500 dark:text-gray-400">Nhãn:</span>
-    {allTags.map((tag) => {
-      const active = selectedTagIds.includes(tag.id);
-      return (
-        <button
-          key={tag.id}
-          type="button"
-          onClick={() => toggleTagFilter(tag.id)}
-          className={
-            active
-              ? "text-xs px-2.5 py-1 rounded-full bg-primary text-white transition-colors"
-              : "text-xs px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-primary hover:text-primary transition-colors"
-          }
-        >
-          {tag.name}
-        </button>
-      );
-    })}
-    {selectedTagIds.length > 0 && (
-      <button
-        type="button"
-        onClick={() => setSelectedTagIds([])}
-        className="text-xs text-gray-400 hover:text-danger underline ml-1"
-      >
-        Bỏ lọc
-      </button>
-    )}
-  </div>
-)}
+        <div className="mb-4 flex flex-col sm:flex-row gap-3 max-w-2xl">
+          <div className="w-full sm:w-56">
+            <Select
+              options={[{ value: "all", label: "Tất cả môn học" }, ...subjects.map((s) => ({ value: String(s.id), label: s.name }))]}
+              value={filterSubject}
+              onChange={(e) => {
+                setFilterSubject(e.target.value);
+                setFilterChapter("all");
+              }}
+            />
+          </div>
+          <div className="w-full sm:w-56">
+            <Select
+              options={[{ value: "all", label: "Tất cả chương" }, ...chaptersOfSelectedSubject.map((c) => ({ value: String(c.id), label: c.name }))]}
+              value={filterChapter}
+              onChange={(e) => setFilterChapter(e.target.value)}
+              disabled={filterSubject === "all"}
+            />
+          </div>
+        </div>
+
+        {allTags.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted">Nhãn:</span>
+            {allTags.map((tag) => {
+              const active = selectedTagIds.includes(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => toggleTagFilter(tag.id)}
+                  className={
+                    active
+                      ? "text-xs px-2.5 py-1 rounded-full bg-primary text-white transition-colors"
+                      : "text-xs px-2.5 py-1 rounded-full border border-border text-muted hover:border-primary hover:text-primary transition-colors"
+                  }
+                >
+                  {tag.name}
+                </button>
+              );
+            })}
+            {selectedTagIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedTagIds([])}
+                className="text-xs text-muted hover:text-danger underline ml-1"
+              >
+                Bỏ lọc
+              </button>
+            )}
+          </div>
+        )}
 
         {error && (
           <p className="text-danger text-sm mb-4">Lỗi tải dữ liệu: {error}</p>
@@ -206,7 +210,7 @@ const filteredQuizzes = useMemo(() => {
             ))}
           </div>
         ) : filteredQuizzes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center py-20 text-gray-500 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center text-center py-20 text-muted">
             <FileQuestion size={40} className="mb-3 opacity-60" />
             <p className="font-medium">
               {search ? "Không tìm thấy bộ đề nào phù hợp" : "Bạn chưa tạo bộ đề nào"}

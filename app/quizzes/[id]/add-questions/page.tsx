@@ -109,12 +109,12 @@ export default function AddQuestionsPage() {
   return (
     <RequireAuth>
       <div className="p-8 max-w-3xl mx-auto animate-fade-up">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Thêm câu hỏi</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">Bộ đề: {quizTitle}</p>
+        <h1 className="text-2xl font-bold text-foreground mb-1">Thêm câu hỏi</h1>
+        <p className="text-muted mb-6">Bộ đề: {quizTitle}</p>
 
         <Card className="p-6">
           <div className="mb-4">
-            <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block mb-2 text-sm font-medium text-foreground/80">
               Upload file Word/PDF (tùy chọn)
             </label>
             <label className="inline-flex items-center gap-2 cursor-pointer">
@@ -124,7 +124,7 @@ export default function AddQuestionsPage() {
               </span>
               <input type="file" accept=".docx,.pdf" onChange={handleFileUpload} className="hidden" />
             </label>
-            {fileLoading && <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Đang đọc file...</p>}
+            {fileLoading && <p className="text-sm text-muted mt-2">Đang đọc file...</p>}
             {fileError && <p className="text-sm text-danger mt-2">{fileError}</p>}
           </div>
 
@@ -152,7 +152,7 @@ export default function AddQuestionsPage() {
               ))}
             </ul>
 
-            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            <p className="text-sm text-foreground/80 mb-3">
               Nội dung của bạn không đúng định dạng chuẩn. Bạn có thể copy đoạn hướng dẫn dưới đây,
               gửi cho một AI khác (ChatGPT, Gemini...) kèm nội dung gốc, rồi dán kết quả AI trả về vào ô văn bản
               phía trên và bấm &quot;Tách câu hỏi&quot; lại.
@@ -171,14 +171,14 @@ export default function AddQuestionsPage() {
 
         {questions.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               Xem trước ({questions.length} câu) — chọn đáp án đúng
             </h2>
 
             <div className="flex flex-col gap-4">
               {questions.map((q, qIndex) => (
                 <Card key={qIndex} className="p-5">
-                  <p className="font-medium text-gray-900 dark:text-white mb-3">
+                  <p className="font-medium text-foreground mb-3">
                     Câu {qIndex + 1}: {q.content}
                   </p>
 
@@ -186,7 +186,7 @@ export default function AddQuestionsPage() {
                     {q.options.map((option, oIndex) => (
                       <label
                         key={oIndex}
-                        className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300"
+                        className="flex items-center gap-2 cursor-pointer text-sm text-foreground/80"
                       >
                         <input
                           type="radio"

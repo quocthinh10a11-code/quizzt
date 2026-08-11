@@ -47,14 +47,14 @@ export default function ForgotPasswordPage() {
           <h1 className="mt-4 text-xl font-semibold text-black dark:text-white">
             Quên mật khẩu
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-muted">
             Nhập email, chúng tôi sẽ gửi link đặt lại mật khẩu
           </p>
         </div>
 
         {sent ? (
           <div className="text-center">
-            <p className="text-sm text-gray-700 dark:text-gray-300">
+            <p className="text-sm text-foreground/80">
               Đã gửi link đặt lại mật khẩu tới <strong>{email}</strong>. Kiểm tra hộp thư
               (kể cả mục spam) và bấm vào link trong email.
             </p>

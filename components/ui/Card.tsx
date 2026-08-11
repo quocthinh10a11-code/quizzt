@@ -4,15 +4,19 @@ type CardProps = React.HTMLAttributes<HTMLDivElement> & {
   hoverable?: boolean;
 };
 
-export default function Card({ hoverable = false, className, children, ...props }: CardProps) {
+export default function Card({
+  hoverable = false,
+  className,
+  children,
+  ...props
+}: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-gray-200 dark:border-gray-800",
-        "bg-white dark:bg-gray-900",
-        "shadow-sm",
+        "rounded-2xl border border-border bg-surface shadow-sm",
+        "transition-colors duration-200",
         hoverable &&
-          "transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-gray-300 dark:hover:border-gray-700",
+          "transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-md hover:border-primary-border",
         className
       )}
       {...props}

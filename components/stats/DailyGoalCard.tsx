@@ -93,13 +93,13 @@ export default function DailyGoalCard({ userId }: Props) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Target size={18} className={reached ? "text-success" : "text-primary"} />
-          <h2 className="font-semibold text-gray-900 dark:text-white">Mục tiêu hôm nay</h2>
+          <h2 className="font-semibold text-foreground">Mục tiêu hôm nay</h2>
         </div>
 
         {!editing ? (
           <button
             onClick={handleStartEdit}
-            className="text-gray-400 hover:text-primary transition-colors p-1"
+            className="text-muted hover:text-primary transition-colors p-1"
             aria-label="Sửa mục tiêu"
           >
             <Pencil size={14} />
@@ -121,7 +121,7 @@ export default function DailyGoalCard({ userId }: Props) {
                 }
               }}
               disabled={saving}
-              className="w-16 px-2 py-1 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-50"
+              className="w-16 px-2 py-1 text-sm rounded-md border border-border bg-surface text-foreground disabled:opacity-50"
               autoFocus
             />
             <button
@@ -135,7 +135,7 @@ export default function DailyGoalCard({ userId }: Props) {
             <button
               onClick={handleCancel}
               disabled={saving}
-              className="text-gray-400 hover:text-danger p-1 text-xs disabled:opacity-40"
+              className="text-muted hover:text-danger p-1 text-xs disabled:opacity-40"
               aria-label="Huỷ"
             >
               Huỷ
@@ -149,7 +149,7 @@ export default function DailyGoalCard({ userId }: Props) {
       )}
 
       {!hasStarted ? (
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+        <div className="flex items-center gap-2 text-sm text-muted mb-2">
           <Sparkles size={14} className="text-primary shrink-0" />
           <span>
             Chưa có lượt học nào hôm nay. Làm 1 bộ đề để bắt đầu chuỗi ngày học của bạn!
@@ -157,19 +157,19 @@ export default function DailyGoalCard({ userId }: Props) {
         </div>
       ) : (
         <div className="flex items-end justify-between mb-2">
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+          <p className="text-2xl font-bold text-foreground">
             {progress}
-            <span className="text-base font-normal text-gray-400 dark:text-gray-500"> / {goal} câu</span>
+            <span className="text-base font-normal text-muted"> / {goal} câu</span>
           </p>
           {reached && <span className="text-sm text-success font-medium">Đã đạt mục tiêu! 🎉</span>}
         </div>
       )}
 
       {!hasStarted && (
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-2">0 / {goal} câu</p>
+        <p className="text-sm text-muted mb-2">0 / {goal} câu</p>
       )}
 
-      <div className="h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+      <div className="h-2.5 rounded-full bg-surface-muted overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all", reached ? "bg-success" : "bg-primary")}
           style={{ width: `${pct}%` }}
