@@ -125,8 +125,9 @@ export function parseStudyPlan(value: unknown, context: StudyPlanContext): Study
   for (const rawDay of data.days) {
     if (!rawDay || typeof rawDay !== "object") return null;
     const day = rawDay as Record<string, unknown>;
-    if (!Number.isInteger(day.day) || day.day < 1 || day.day > context.durationDays) return null;
-    if (daysByNumber.has(day.day) || typeof day.focus !== "string" || typeof day.reason !== "string" || !Array.isArray(day.actionIds)) {
+    const dayNumber = typeof day.day === "number" ? day.day : NaN;
+    if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > context.durationDays) return null;
+    if (daysByNumber.has(dayNumber) || typeof day.focus !== "string" || typeof day.reason !== "string" || !Array.isArray(day.actionIds)) {
       return null;
     }
 
@@ -140,8 +141,8 @@ export function parseStudyPlan(value: unknown, context: StudyPlanContext): Study
       actions.push({ ...action });
     }
 
-    daysByNumber.set(day.day, {
-      day: day.day,
+    daysByNumber.set(dayNumber, {
+      day: dayNumber,
       focus: day.focus.trim().slice(0, 240),
       reason: day.reason.trim().slice(0, 240),
       actions,
@@ -168,7 +169,7 @@ export function buildDeterministicStudyPlan(context: StudyPlanContext): StudyPla
     const day = index + 1;
     const actions: StudyPlanAction[] = [];
     if (day === 1 && primary) actions.push({ ...primary });
-    if (day > 1 && secondary && day <= 3 && secondary.id !== primary?.id) actions.push({ ...secondary });
+    if (day > 1 && secondary && secondary.id !== primary?.id) actions.push({ ...secondary });
     if (day === context.durationDays && progress && !actions.some((action) => action.id === progress.id)) actions.push({ ...progress });
     if (actions.length === 0 && primary) actions.push({ ...primary });
 
