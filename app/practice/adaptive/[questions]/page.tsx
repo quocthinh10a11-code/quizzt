@@ -35,9 +35,7 @@ export default function AdaptivePracticePage() {
     userId: user?.id,
     quizId: null,
     quizTitle,
-    // Database hiện tại chưa xác nhận support một enum/value "adaptive".
-    // Giữ "quiz" để không phá schema hiện có và dùng quizTitle marker làm metadata nhận diện.
-    attemptType: "quiz",
+    attemptType: "adaptive",
     storageKey: `quizResult:adaptive:${attemptId}:${questionIds.join("-")}`,
   });
 
