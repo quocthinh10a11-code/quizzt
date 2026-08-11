@@ -10,6 +10,10 @@ import type { LearningInsight } from "@/lib/ai/learningInsight";
 
 type Props = { attemptId: number };
 
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
 export default function LearningInsightCard({ attemptId }: Props) {
   const router = useRouter();
   const [insight, setInsight] = useState<LearningInsight | null>(null);
@@ -74,8 +78,8 @@ export default function LearningInsightCard({ attemptId }: Props) {
       }
 
       const rawIds: unknown[] = Array.isArray(data.questionIds) ? data.questionIds : [];
-      const validIds = rawIds.filter((id: unknown): id is number => Number.isInteger(id) && id > 0);
-      const ids = Array.from(new Set<number>(validIds)).slice(0, 10);
+      const validIds = rawIds.filter(isPositiveInteger);
+      const ids: number[] = Array.from(new Set(validIds)).slice(0, 10);
       if (ids.length === 0) {
         setAdaptiveError("Chưa tìm được câu hỏi phù hợp. Bạn có thể tiếp tục với các lựa chọn học hiện có.");
         return;
