@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { saveQuizAttempt, type AttemptType } from "@/lib/quizAttempts";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 export type PracticeQuestion = {
   id: number;
@@ -21,10 +22,19 @@ type Params = {
   storageKey: string;
 };
 
-const EXIT_WARNING_MESSAGE = "Kết quả của bạn sẽ không được tính. Xác nhận rời khỏi bài làm?";
+const EXIT_WARNING_MESSAGE =
+  "Kết quả của bạn sẽ không được tính. Xác nhận rời khỏi bài làm?";
 
-export function usePracticeSession({ questions, userId, quizId, quizTitle, attemptType, storageKey }: Params) {
+export function usePracticeSession({
+  questions,
+  userId,
+  quizId,
+  quizTitle,
+  attemptType,
+  storageKey,
+}: Params) {
   const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
@@ -39,7 +49,6 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
-  // Reset câu trả lời mỗi khi danh sách câu hỏi thay đổi (ví dụ đổi bộ đề đang chọn)
   useEffect(() => {
     setAnswers(Array(questions.length).fill(null));
     setAttemptId(null);
@@ -152,7 +161,6 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
-  // Chặn mọi hình thức rời khỏi bài làm khi đang trong lúc thi (chưa nộp bài)
   useEffect(() => {
     const isActive = started && !submitted;
     if (!isActive) return;
@@ -162,27 +170,35 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
       e.returnValue = "";
     }
 
-    function handleDocumentClick(e: MouseEvent) {
-      const anchor = (e.target as HTMLElement)?.closest("a[href]") as HTMLAnchorElement | null;
+    async function handleDocumentClick(e: MouseEvent) {
+      const anchor = (e.target as HTMLElement)?.closest(
+        "a[href]",
+      ) as HTMLAnchorElement | null;
       if (!anchor) return;
 
       const href = anchor.getAttribute("href");
       if (!href || href.startsWith("#")) return;
-      if (anchor.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (anchor.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey)
+        return;
 
-      const confirmed = window.confirm(EXIT_WARNING_MESSAGE);
-      if (!confirmed) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+      e.preventDefault();
+      e.stopPropagation();
+      const confirmed = await confirm({
+        title: "Rời khỏi bài làm?",
+        description: EXIT_WARNING_MESSAGE,
+        confirmLabel: "Rời bài",
+      });
+      if (confirmed) window.location.assign(href);
     }
 
-    // Chặn nút Back/Forward của trình duyệt: chèn thêm 1 mốc lịch sử,
-    // để lần bấm Back đầu tiên chỉ trigger cảnh báo thay vì rời trang ngay
     window.history.pushState(null, "", window.location.href);
 
-    function handlePopState() {
-      const confirmed = window.confirm(EXIT_WARNING_MESSAGE);
+    async function handlePopState() {
+      const confirmed = await confirm({
+        title: "Rời khỏi bài làm?",
+        description: EXIT_WARNING_MESSAGE,
+        confirmLabel: "Rời bài",
+      });
       if (confirmed) {
         window.history.back();
       } else {
@@ -201,8 +217,53 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
     };
   }, [started, submitted]);
 
+  useEffect(() => {
+    if (!started || submitted) return;
+
+    function handleKeyboard(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.isContentEditable ||
+        (target &&
+          ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName))
+      )
+        return;
+
+      if (event.key >= "1" && event.key <= "4") {
+        const optionIndex = Number(event.key) - 1;
+        if (optionIndex < (questions[currentIndex]?.options.length ?? 0)) {
+          event.preventDefault();
+          handleSelect(optionIndex);
+        }
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        handlePrevious();
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        handleNext();
+        return;
+      }
+
+      if (event.key === "Enter" && currentIndex === questions.length - 1) {
+        event.preventDefault();
+        void handleSubmit();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, [started, submitted, currentIndex, questions]);
+
   function formatTime(seconds: number) {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   }
@@ -213,6 +274,7 @@ export function usePracticeSession({ questions, userId, quizId, quizTitle, attem
   }
 
   return {
+    questions,
     currentIndex,
     setCurrentIndex,
     answers,

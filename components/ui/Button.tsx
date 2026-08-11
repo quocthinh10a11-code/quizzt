@@ -16,14 +16,10 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    "bg-primary text-white hover:bg-primary-hover disabled:hover:bg-primary",
-  secondary:
-    "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700",
-  outline:
-    "border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800",
-  ghost:
-    "bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
+  primary: "bg-primary text-white hover:bg-primary-hover disabled:hover:bg-primary",
+  secondary: "bg-surface-muted text-foreground hover:bg-border",
+  outline: "border border-border text-foreground bg-transparent hover:bg-surface-muted",
+  ghost: "bg-transparent text-foreground hover:bg-surface-muted",
   danger: "bg-danger text-white hover:bg-red-600",
   success: "bg-success text-white hover:bg-green-600",
 };
@@ -44,7 +40,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium",
+        "inline-flex items-center justify-center rounded-xl font-medium",
         "transition-all duration-150 ease-out",
         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
         "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -55,11 +51,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       )}
       {...props}
     >
-      {loading ? (
-        <Spinner size="sm" />
-      ) : (
-        leftIcon
-      )}
+      {loading ? <Spinner size="sm" /> : leftIcon}
       {children}
       {!loading && rightIcon}
     </button>

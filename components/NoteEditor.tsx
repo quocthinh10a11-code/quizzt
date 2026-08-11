@@ -52,21 +52,21 @@ export default function NoteEditor({ userId, questionId, initialContent, onSaved
         aria-label="Ghi chú"
         className={cn(
           "p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-          hasNote ? "text-primary hover:bg-primary/10" : "text-gray-400 hover:text-primary hover:bg-primary/10"
+          hasNote ? "text-primary hover:bg-primary/10" : "text-muted hover:text-primary hover:bg-primary/10"
         )}
       >
         <StickyNote size={18} fill={hasNote ? "currentColor" : "none"} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 z-10 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg p-3 animate-fade-up">
+        <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 z-10 rounded-lg border border-border bg-surface shadow-lg p-3 animate-fade-up">
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Ghi chú của riêng bạn cho câu hỏi này..."
             rows={4}
             autoFocus
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 resize-none"
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 resize-none"
           />
           <div className="flex justify-end gap-2 mt-2">
             <Button size="sm" variant="ghost" onClick={handleCancel} leftIcon={<X size={14} />}>

@@ -52,7 +52,7 @@ export default function TagPicker({ userId, selectedNames, onChange }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label className="text-sm font-medium text-foreground/80">
         Nhãn (tuỳ chọn)
       </label>
 
@@ -86,7 +86,7 @@ export default function TagPicker({ userId, selectedNames, onChange }: Props) {
           type="button"
           onClick={() => addTag(inputValue)}
           aria-label="Thêm nhãn"
-          className="p-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 hover:text-primary hover:border-primary transition-colors"
+          className="p-2 rounded-lg border border-gray-300 dark:border-gray-700 text-foreground/80 hover:text-primary hover:border-primary transition-colors"
         >
           <Plus size={16} />
         </button>
@@ -99,7 +99,7 @@ export default function TagPicker({ userId, selectedNames, onChange }: Props) {
               type="button"
               key={tag.id}
               onClick={() => addTag(tag.name)}
-              className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-primary hover:text-primary transition-colors"
+              className="text-xs px-2 py-1 rounded-full border border-border text-muted hover:border-primary hover:text-primary transition-colors"
             >
               {tag.name}
             </button>

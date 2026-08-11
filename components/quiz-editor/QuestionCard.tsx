@@ -1,18 +1,26 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Check, ChevronDown, Trash2 } from "lucide-react";
 import type { EditorQuestion } from "@/lib/useQuizEditor";
 import type { Difficulty } from "@/lib/quizParser";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
 import Select from "@/components/ui/Select";
+import Badge from "@/components/ui/Badge";
+import { cn } from "@/lib/utils";
 
 const DIFFICULTY_OPTIONS = [
   { value: "easy", label: "Dễ" },
   { value: "medium", label: "Trung bình" },
   { value: "hard", label: "Khó" },
 ];
+
+const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
+  easy: "success",
+  medium: "warning",
+  hard: "danger",
+};
 
 type Props = {
   question: EditorQuestion;
@@ -21,8 +29,6 @@ type Props = {
   onOpen: () => void;
   onChangeDifficulty: (difficulty: Difficulty) => void;
   onSelectCorrect: (optionIndex: number) => void;
-  // variant "preview": nội dung tĩnh (Create — nội dung đến từ parser, không sửa tay)
-  // variant "full": nội dung + đáp án đều sửa được (Edit)
   variant: "preview" | "full";
   onChangeContent?: (content: string) => void;
   onChangeOption?: (optionIndex: number, value: string) => void;
@@ -41,95 +47,143 @@ export default function QuestionCard({
   onChangeOption,
   onDelete,
 }: Props) {
-  return (
-    <Card className="p-5">
-      <div className="flex justify-between items-start gap-3 mb-3">
-        {variant === "preview" ? (
-          <p className="font-medium text-gray-900 dark:text-white">
-            Câu {index + 1}: {question.content}
-          </p>
-        ) : (
-          <span className="font-semibold text-gray-900 dark:text-white shrink-0">Câu {index + 1}</span>
-        )}
+  const hasCorrectAnswer = question.correctIndex !== null;
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="w-32">
-            <Select
-              options={DIFFICULTY_OPTIONS}
-              value={question.difficulty}
-              onFocus={onOpen}
-              onChange={(e) => onChangeDifficulty(e.target.value as Difficulty)}
-            />
-          </div>
-          {variant === "full" && onDelete && (
+  return (
+    <Card className={cn("overflow-hidden", isOpen && "ring-1 ring-primary/10")}>
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <button
+            type="button"
+            onClick={onOpen}
+            className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 rounded-lg"
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-bold text-foreground">Câu {index + 1}</span>
+              <Badge variant={hasCorrectAnswer ? "success" : "warning"}>
+                {hasCorrectAnswer ? <Check size={12} /> : "Cần chọn đáp án"}
+                {hasCorrectAnswer && "Đã chọn"}
+              </Badge>
+            </div>
+            {variant === "preview" ? (
+              <p className="mt-2 text-sm sm:text-base font-medium leading-6 text-foreground line-clamp-2">
+                {question.content || "Chưa có nội dung câu hỏi"}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-muted">Bấm để mở rộng và chỉnh sửa câu hỏi.</p>
+            )}
+          </button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-32 sm:w-36" onClick={(e) => e.stopPropagation()}>
+              <Select
+                label="Độ khó"
+                options={DIFFICULTY_OPTIONS}
+                value={question.difficulty}
+                onFocus={onOpen}
+                onChange={(e) => onChangeDifficulty(e.target.value as Difficulty)}
+                className="text-xs"
+              />
+            </div>
+            {variant === "full" && onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                title="Xoá câu hỏi"
+                className="p-2 mt-5 rounded-lg text-muted hover:text-danger hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-danger/20"
+              >
+                <Trash2 size={17} />
+              </button>
+            )}
             <button
-              onClick={onDelete}
-              className="inline-flex items-center gap-1 text-danger text-sm hover:underline"
+              type="button"
+              onClick={onOpen}
+              aria-label={isOpen ? "Thu gọn câu hỏi" : "Mở câu hỏi"}
+              className="p-2 mt-5 rounded-lg text-muted hover:text-foreground hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
             >
-              <Trash2 size={14} />
-              Xoá
+              <ChevronDown size={17} className={cn("transition-transform", isOpen && "rotate-180")} />
             </button>
-          )}
+          </div>
         </div>
       </div>
 
       {!isOpen ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-          Chọn độ khó bên trên để thiết lập {variant === "full" ? "nội dung và " : ""}đáp án đúng cho câu này.
-        </p>
+        <div className="px-4 sm:px-5 pb-4">
+          <div className="rounded-lg bg-surface-muted px-3 py-2 text-xs text-muted">
+            Mở câu hỏi để kiểm tra hoặc chỉnh đáp án.
+          </div>
+        </div>
       ) : variant === "preview" ? (
-        <div className="flex flex-col gap-2 animate-fade-up">
-          {question.options.map((option, oIndex) => (
-            <label
-              key={oIndex}
-              className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300"
-            >
-              <input
-                type="radio"
-                name={`correct-${question.tempId}`}
-                checked={question.correctIndex === oIndex}
-                onChange={() => onSelectCorrect(oIndex)}
-                className="accent-primary w-4 h-4"
-              />
-              <span>
-                {String.fromCharCode(65 + oIndex)}. {option}
-              </span>
-            </label>
-          ))}
+        <div className="border-t border-border bg-surface-muted/40 p-4 sm:p-5 animate-fade-up">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted mb-3">Chọn đáp án đúng</p>
+          <div className="grid sm:grid-cols-2 gap-2.5">
+            {question.options.map((option, oIndex) => {
+              const selected = question.correctIndex === oIndex;
+              return (
+                <label
+                  key={oIndex}
+                  className={cn(
+                    "flex items-start gap-3 cursor-pointer rounded-xl border px-3.5 py-3 text-sm transition-colors",
+                    selected
+                      ? "border-success/30 bg-success-soft text-foreground"
+                      : "border-border bg-surface hover:border-primary/40 hover:bg-primary-soft/30"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name={`correct-${question.tempId}`}
+                    checked={selected}
+                    onChange={() => onSelectCorrect(oIndex)}
+                    className="accent-primary mt-0.5 w-4 h-4 shrink-0"
+                  />
+                  <span className="font-medium">{String.fromCharCode(65 + oIndex)}.</span>
+                  <span className="leading-5">{option}</span>
+                  {selected && <Check size={16} className="ml-auto text-success shrink-0" />}
+                </label>
+              );
+            })}
+          </div>
         </div>
       ) : (
-        <div className="animate-fade-up">
+        <div className="border-t border-border p-4 sm:p-5 animate-fade-up">
           <Textarea
+            label="Nội dung câu hỏi"
             value={question.content}
             onChange={(e) => onChangeContent?.(e.target.value)}
-            placeholder="Nội dung câu hỏi"
-            rows={2}
-            className="mb-3"
+            placeholder="Nhập nội dung câu hỏi..."
+            rows={3}
+            className="mb-4"
           />
-          <div className="flex flex-col gap-2">
-            {question.options.map((opt, optIndex) => (
-              <div key={optIndex} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name={`correct-${question.tempId}`}
-                  checked={question.correctIndex === optIndex}
-                  onChange={() => onSelectCorrect(optIndex)}
-                  className="accent-primary w-4 h-4 shrink-0"
-                />
-                <span className="w-5 text-sm text-gray-500 dark:text-gray-400">
-                  {String.fromCharCode(65 + optIndex)}.
-                </span>
-                <Input
-                  value={opt}
-                  onChange={(e) => onChangeOption?.(optIndex, e.target.value)}
-                  className="flex-1"
-                />
-              </div>
-            ))}
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-2">Các đáp án</p>
+            <div className="flex flex-col gap-2.5">
+              {question.options.map((opt, optIndex) => {
+                const selected = question.correctIndex === optIndex;
+                return (
+                  <div key={optIndex} className={cn("flex items-center gap-2 rounded-xl p-2 border", selected ? "border-success/30 bg-success-soft/40" : "border-border bg-surface")}>
+                    <input
+                      type="radio"
+                      name={`correct-${question.tempId}`}
+                      checked={selected}
+                      onChange={() => onSelectCorrect(optIndex)}
+                      title="Đánh dấu đáp án đúng"
+                      className="accent-primary w-4 h-4 shrink-0 ml-1"
+                    />
+                    <span className="w-5 text-sm font-semibold text-muted">{String.fromCharCode(65 + optIndex)}.</span>
+                    <Input
+                      aria-label={`Đáp án ${String.fromCharCode(65 + optIndex)}`}
+                      value={opt}
+                      onChange={(e) => onChangeOption?.(optIndex, e.target.value)}
+                      placeholder={`Đáp án ${String.fromCharCode(65 + optIndex)}`}
+                      className="flex-1 border-0 shadow-none bg-transparent focus:ring-0 px-2"
+                    />
+                    {selected && <Badge variant="success">Đúng</Badge>}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted mt-3">Chọn nút tròn bên trái để đánh dấu đáp án đúng.</p>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Chọn nút tròn ở đầu dòng để đánh dấu đáp án đúng.
-          </p>
         </div>
       )}
     </Card>

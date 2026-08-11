@@ -12,6 +12,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { supabase } from "@/lib/supabase";
 import { getTagsForQuizzes, type Tag } from "@/lib/quizTags";
+import { toFriendlyMessage } from "@/lib/friendlyError";
 import { useAuth } from "@/context/AuthContext";
 import { getDueReviewCountResult } from "@/lib/reviewQueue";
 import { getUserAttemptsResult, type AttemptSummary } from "@/lib/quizAttempts";

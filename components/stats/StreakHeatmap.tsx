@@ -21,7 +21,7 @@ function levelForCount(count: number): number {
 }
 
 const LEVEL_CLASS = [
-  "bg-gray-100 dark:bg-gray-800",
+  "bg-surface-muted",
   "bg-primary/20",
   "bg-primary/40",
   "bg-primary/70",
@@ -76,21 +76,21 @@ export default function StreakHeatmap({ userId }: Props) {
     <Card className="p-6">
       <div className="flex flex-wrap items-center gap-6 mb-5">
         <div className="flex items-center gap-2">
-          <Flame size={20} className={streak && streak.currentStreak > 0 ? "text-orange-500" : "text-gray-300 dark:text-gray-700"} />
+          <Flame size={20} className={streak && streak.currentStreak > 0 ? "text-orange-500" : "text-muted dark:text-foreground/80"} />
           <div>
-            <p className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+            <p className="text-xl font-bold text-foreground leading-tight">
               {streak?.currentStreak ?? 0} ngày
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Chuỗi hiện tại</p>
+            <p className="text-xs text-muted">Chuỗi hiện tại</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Trophy size={20} className="text-amber-500" />
           <div>
-            <p className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+            <p className="text-xl font-bold text-foreground leading-tight">
               {streak?.longestStreak ?? 0} ngày
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Chuỗi dài nhất</p>
+            <p className="text-xs text-muted">Chuỗi dài nhất</p>
           </div>
         </div>
         {streak && streak.currentStreak > 0 && !streak.studiedToday && (
@@ -114,7 +114,7 @@ export default function StreakHeatmap({ userId }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-400 dark:text-gray-500">
+      <div className="flex items-center gap-1.5 mt-3 text-xs text-muted">
         <span>Ít</span>
         {LEVEL_CLASS.map((cls, i) => (
           <div key={i} className={cn("w-3 h-3 rounded-sm", cls)} />

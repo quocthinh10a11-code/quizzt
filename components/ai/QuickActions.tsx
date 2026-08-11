@@ -21,7 +21,7 @@ export default function QuickActions({ actions, onSelect, disabled }: Props) {
           key={action.label}
           onClick={() => onSelect(action)}
           disabled={disabled}
-          className="text-xs px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
+          className="text-xs px-2.5 py-1 rounded-full border border-border text-foreground/80 hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
         >
           {action.label}
         </button>

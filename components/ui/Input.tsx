@@ -20,14 +20,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label htmlFor={inputId} className="text-sm font-medium text-foreground/80">
           {label}
         </label>
       )}
 
       <div className="relative">
         {leftIcon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
             {leftIcon}
           </span>
         )}
@@ -39,9 +39,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
           className={cn(
             "w-full rounded-lg border px-4 py-2 text-sm",
-            "bg-white dark:bg-gray-900",
+            "bg-surface",
             "text-black dark:text-white",
-            "placeholder:text-gray-400 dark:placeholder:text-gray-500",
+            "placeholder:text-muted dark:placeholder:text-foreground/80",
             "transition-all duration-150",
             "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary",
             error
@@ -60,7 +60,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         </p>
       )}
       {!error && helperText && (
-        <p id={`${inputId}-helper`} className="text-sm text-gray-500 dark:text-gray-400">
+        <p id={`${inputId}-helper`} className="text-sm text-muted">
           {helperText}
         </p>
       )}

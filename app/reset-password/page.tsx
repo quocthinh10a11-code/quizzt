@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {!ready && !done && (
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-center text-sm text-muted">
             Đang xác thực link đặt lại mật khẩu...
           </p>
         )}

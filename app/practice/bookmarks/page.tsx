@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2, Bookmark, BookmarkCheck, LogOut, ArrowLeft, Layers } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -35,6 +36,7 @@ const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
 export default function BookmarksPracticePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { confirm } = useConfirm();
 
   const [allQuestions, setAllQuestions] = useState<BookmarkedQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,8 +168,12 @@ export default function BookmarksPracticePage() {
     }
   }
 
-  function handleExit() {
-    const confirmed = window.confirm("Kết quả của bạn sẽ không được tính. Xác nhận thoát?");
+  async function handleExit() {
+    const confirmed = await confirm({
+      title: "Rời khỏi bài làm?",
+      description: "Kết quả của bạn sẽ không được tính. Bạn có chắc muốn rời khỏi bài làm?",
+      confirmLabel: "Rời bài",
+    });
     if (confirmed) {
       session.forceExit();
       router.push("/");
@@ -175,13 +181,13 @@ export default function BookmarksPracticePage() {
   }
 
   if (authLoading || loading) {
-    return <div className="p-8 text-center text-gray-500">Đang tải câu hỏi đã đánh dấu...</div>;
+    return <div className="p-8 text-center text-foreground/80">Đang tải câu hỏi đã đánh dấu...</div>;
   }
 
   if (allQuestions.length === 0) {
     return (
       <div className="p-8 text-center animate-fade-up">
-        <p className="text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-muted mb-4">
           Bạn chưa đánh dấu câu hỏi nào. Vào phần Làm bài của 1 bộ đề, bấm biểu tượng bookmark trên mỗi câu để đánh dấu.
         </p>
         <Button onClick={() => router.push("/")} variant="primary">
@@ -194,8 +200,8 @@ export default function BookmarksPracticePage() {
   if (selectedGroupKey === null) {
     return (
       <div className="p-8 max-w-2xl mx-auto animate-fade-up">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Câu đã đánh dấu</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">Câu đã đánh dấu</h1>
+        <p className="text-muted mb-6">
           Chọn bộ đề để ôn lại các câu đã đánh dấu trong bộ đề đó
         </p>
 
@@ -207,7 +213,7 @@ export default function BookmarksPracticePage() {
           >
             <div className="flex items-center gap-3">
               <Layers size={18} className="text-primary" />
-              <p className="font-medium text-gray-900 dark:text-white">Tất cả câu đã đánh dấu</p>
+              <p className="font-medium text-foreground">Tất cả câu đã đánh dấu</p>
             </div>
             <Badge variant="primary">{allQuestions.length} câu</Badge>
           </Card>
@@ -219,7 +225,7 @@ export default function BookmarksPracticePage() {
               className="p-4 flex items-center justify-between gap-4 cursor-pointer"
               onClick={() => handleChooseGroup(group.key)}
             >
-              <p className="font-medium text-gray-900 dark:text-white truncate">{group.quizTitle}</p>
+              <p className="font-medium text-foreground truncate">{group.quizTitle}</p>
               <Badge variant="default">{group.questions.length} câu</Badge>
             </Card>
           ))}
@@ -233,16 +239,16 @@ export default function BookmarksPracticePage() {
       <div className="p-8 max-w-md mx-auto text-center animate-fade-up">
         <button
           onClick={handleBackToSelection}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-primary transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-primary transition-colors mb-4"
         >
           <ArrowLeft size={15} /> Chọn bộ đề khác
         </button>
 
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{activeTitle}</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">{activeQuestions.length} câu hỏi</p>
+        <h1 className="text-2xl font-bold text-foreground mb-1">{activeTitle}</h1>
+        <p className="text-muted mb-6">{activeQuestions.length} câu hỏi</p>
 
         <Card className="p-6 text-left">
-          <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+          <label className="flex items-center gap-2 mb-4 text-sm text-foreground/80 cursor-pointer">
             <input
               type="checkbox"
               checked={session.noLimit}
@@ -278,8 +284,8 @@ export default function BookmarksPracticePage() {
     <div className="p-8 max-w-3xl mx-auto animate-fade-up">
       <div className="flex justify-between items-start gap-4 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{activeTitle}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <h1 className="text-xl font-bold text-foreground">{activeTitle}</h1>
+          <p className="text-sm text-muted mt-0.5">
             Đã trả lời {answeredCount}/{activeQuestions.length} câu
           </p>
         </div>
@@ -287,7 +293,7 @@ export default function BookmarksPracticePage() {
           {!session.submitted && (
             <button
               onClick={handleExit}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-danger transition-colors px-2 py-1"
+              className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-danger transition-colors px-2 py-1"
             >
               <LogOut size={14} />
               Thoát
@@ -326,7 +332,7 @@ export default function BookmarksPracticePage() {
                 <button
                   onClick={() => handleToggleBookmark(question.id)}
                   aria-label="Đánh dấu câu hỏi"
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                  className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                 >
                   {bookmarkedIds.has(question.id) ? (
                     <BookmarkCheck size={18} className="text-primary" />
@@ -336,7 +342,7 @@ export default function BookmarksPracticePage() {
                 </button>
               </div>
             </div>
-            <p className="text-lg text-gray-900 dark:text-white mb-6">{question.content}</p>
+            <p className="text-lg text-foreground mb-6">{question.content}</p>
 
             <div className="flex flex-col gap-3">
               {question.options.map((option, index) => {
@@ -350,7 +356,7 @@ export default function BookmarksPracticePage() {
                       "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
                       isSelected
                         ? "bg-primary text-white border-primary"
-                        : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-800 hover:border-primary/50"
+                        : "bg-surface text-foreground border-border hover:border-primary/50"
                     )}
                   >
                     <span className="font-medium mr-2">{String.fromCharCode(65 + index)}.</span>
@@ -377,7 +383,7 @@ export default function BookmarksPracticePage() {
           </Card>
 
           <Card className="p-4 mt-4">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">Chuyển nhanh đến câu</p>
+            <p className="text-xs font-medium text-muted mb-3">Chuyển nhanh đến câu</p>
             <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
               {activeQuestions.map((_, i) => {
                 const isCurrent = i === session.currentIndex;
@@ -393,7 +399,7 @@ export default function BookmarksPracticePage() {
                         ? "bg-primary text-white border-primary"
                         : isAnswered
                         ? "bg-primary/10 text-primary border-primary/30"
-                        : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:border-primary/50"
+                        : "bg-transparent text-muted border-border hover:border-primary/50"
                     )}
                   >
                     {i + 1}
@@ -406,8 +412,8 @@ export default function BookmarksPracticePage() {
       ) : (
         <Card className="p-8 text-center">
           <CheckCircle2 size={40} className="mx-auto text-success mb-3" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kết quả</h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Kết quả</h2>
+          <p className="text-lg text-foreground/80 dark:text-muted mb-6">
             Đúng{" "}
             <span className="text-primary font-semibold">
               {activeQuestions.filter((q, i) => session.answers[i] === q.correct_index).length}
