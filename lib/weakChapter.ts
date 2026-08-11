@@ -175,7 +175,7 @@ export async function getWeakChapterResult(userId: string): Promise<WeakChapterR
         0
       );
       const accuracy = uniqueQuestionCount
-        ? Math.round((questionAccuracySum / uniqueQuestionCount) * 100)
+        ? (questionAccuracySum / uniqueQuestionCount) * 100
         : 0;
 
       return {
