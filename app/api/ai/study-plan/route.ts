@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAuthenticatedContext } from "@/lib/ai/auth";
 import { checkAndRecordRateLimit } from "@/lib/ai/rateLimit";
 import { getStudyPlan, type StudyPlanContext } from "@/lib/ai/provider";
 import { buildDeterministicStudyPlan } from "@/lib/ai/studyPlan";
-import { getUserAttemptsResult, type AttemptSummary } from "@/lib/quizAttempts";
-import { getDueReviewCountResult } from "@/lib/reviewQueue";
 import { getWeakChapterResult } from "@/lib/weakChapter";
 
 const STUDY_PLAN_RATE_LIMIT_PER_MINUTE = 5;
@@ -13,7 +12,39 @@ const MIN_DURATION_DAYS = 3;
 const MAX_DURATION_DAYS = 14;
 const RECENT_ATTEMPT_LIMIT = 12;
 
-function getRecentLearning(attempts: AttemptSummary[]) {
+type RecentAttempt = {
+  id: number;
+  quiz_id: number | null;
+  quiz_title: string;
+  total_questions: number;
+  correct_count: number;
+  attempt_type: "quiz" | "adaptive";
+};
+
+async function getDueReviewCount(client: SupabaseClient, userId: string): Promise<{ count: number; error: string | null }> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { count, error } = await client
+    .from("review_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .lte("next_review_date", today);
+
+  return { count: count ?? 0, error: error?.message ?? null };
+}
+
+async function getRecentAttempts(client: SupabaseClient, userId: string): Promise<{ data: RecentAttempt[]; error: string | null }> {
+  const { data, error } = await client
+    .from("quiz_attempts")
+    .select("id, quiz_id, quiz_title, total_questions, correct_count, attempt_type")
+    .eq("user_id", userId)
+    .in("attempt_type", ["quiz", "adaptive"])
+    .order("created_at", { ascending: false })
+    .limit(RECENT_ATTEMPT_LIMIT);
+
+  return { data: (data ?? []) as RecentAttempt[], error: error?.message ?? null };
+}
+
+function getRecentLearning(attempts: RecentAttempt[]) {
   const recent = attempts.find((attempt) => attempt.quiz_id !== null && attempt.total_questions > 0);
   if (!recent || recent.quiz_id === null) return null;
 
@@ -89,12 +120,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { supabase, userId } = authContext;
-    const rateLimitResult = await checkAndRecordRateLimit(
-      supabase,
-      userId,
-      "study_plan",
-      STUDY_PLAN_RATE_LIMIT_PER_MINUTE
-    );
+    const rateLimitResult = await checkAndRecordRateLimit(supabase, userId, "study_plan", STUDY_PLAN_RATE_LIMIT_PER_MINUTE);
 
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
@@ -126,9 +152,9 @@ export async function POST(req: NextRequest) {
     }
 
     const [dueResult, weakResult, attemptsResult] = await Promise.all([
-      getDueReviewCountResult(userId),
-      getWeakChapterResult(userId),
-      getUserAttemptsResult(userId, ["quiz", "adaptive"], RECENT_ATTEMPT_LIMIT),
+      getDueReviewCount(supabase, userId),
+      getWeakChapterResult(userId, supabase),
+      getRecentAttempts(supabase, userId),
     ]);
 
     if (dueResult.error || weakResult.error || attemptsResult.error) {
@@ -141,11 +167,7 @@ export async function POST(req: NextRequest) {
     }
 
     const recentLearning = getRecentLearning(attemptsResult.data);
-    const allowedActions = buildAllowedActions({
-      dueReviewCount: dueResult.count,
-      weakChapter: weakResult.data,
-      recentLearning,
-    });
+    const allowedActions = buildAllowedActions({ dueReviewCount: dueResult.count, weakChapter: weakResult.data, recentLearning });
 
     const context: StudyPlanContext = {
       durationDays,
