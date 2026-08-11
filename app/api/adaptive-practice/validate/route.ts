@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedContext } from "@/lib/ai/auth";
 
-type AttemptAnswer = { question_id: number };
+type AttemptAnswer = { question_id: number; is_correct: boolean };
 type QuestionRow = { id: number; quiz_id: number | null };
 type QuizRow = { id: number; chapter_id: number | null };
 
@@ -32,11 +32,12 @@ export async function POST(req: NextRequest) {
 
     const { data: sourceAnswers, error: answersError } = await supabase
       .from("quiz_attempt_answers")
-      .select("question_id")
+      .select("question_id, is_correct")
       .eq("attempt_id", attemptId);
     if (answersError) return NextResponse.json({ error: "Không thể xác thực dữ liệu phiên học." }, { status: 500 });
 
-    const sourceQuestionIds = [...new Set(((sourceAnswers ?? []) as AttemptAnswer[]).map((answer) => answer.question_id))];
+    const typedAnswers = (sourceAnswers ?? []) as AttemptAnswer[];
+    const sourceQuestionIds = [...new Set(typedAnswers.map((answer) => answer.question_id))];
     if (sourceQuestionIds.length === 0) return NextResponse.json({ valid: false, error: "Phiên học chưa có dữ liệu câu hỏi." }, { status: 400 });
 
     const { data: sourceQuestions, error: sourceQuestionsError } = await supabase
@@ -55,23 +56,42 @@ export async function POST(req: NextRequest) {
     if (sourceQuizzesError) return NextResponse.json({ error: "Không thể xác thực phạm vi bộ đề." }, { status: 500 });
 
     const sourceQuizMap = new Map((sourceQuizzes ?? []).map((quiz) => [quiz.id, quiz as QuizRow]));
+    const sourceQuestionMap = new Map((sourceQuestions ?? []).map((question) => [question.id, question as QuestionRow]));
+    const wrongByChapter = new Map<number, number>();
+
+    for (const answer of typedAnswers) {
+      if (answer.is_correct) continue;
+      const question = sourceQuestionMap.get(answer.question_id);
+      const chapterId = question?.quiz_id !== null && question?.quiz_id !== undefined
+        ? sourceQuizMap.get(question.quiz_id)?.chapter_id
+        : null;
+      if (chapterId !== null && chapterId !== undefined) {
+        wrongByChapter.set(chapterId, (wrongByChapter.get(chapterId) ?? 0) + 1);
+      }
+    }
+
     const sourceChapterIds = [...new Set(
       (sourceQuestions ?? [])
         .map((question) => question.quiz_id !== null ? sourceQuizMap.get(question.quiz_id)?.chapter_id : null)
         .filter((id): id is number => id !== null && id !== undefined)
     )];
-    if (sourceChapterIds.length === 0) return NextResponse.json({ valid: false, error: "Không xác định được phạm vi học tập." }, { status: 400 });
+    const focusChapterIds = [...wrongByChapter.entries()]
+      .filter(([, wrongCount]) => wrongCount >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .map(([chapterId]) => chapterId);
+    const targetChapterIds = focusChapterIds.length > 0 ? focusChapterIds : sourceChapterIds;
+    if (targetChapterIds.length === 0) return NextResponse.json({ valid: false, error: "Không xác định được phạm vi học tập." }, { status: 400 });
 
     const { data: candidateRows, error: candidatesError } = await supabase
       .from("questions")
       .select("id, quiz_id, quizzes!inner(chapter_id)")
-      .in("quizzes.chapter_id", sourceChapterIds);
+      .in("quizzes.chapter_id", targetChapterIds);
     if (candidatesError) return NextResponse.json({ error: "Không thể xác thực câu hỏi luyện tập." }, { status: 500 });
 
     const candidateIds = new Set((candidateRows ?? []).map((question) => question.id));
     const invalidIds = questionIds.filter((id) => !candidateIds.has(id));
     if (invalidIds.length > 0) {
-      return NextResponse.json({ valid: false, error: "Một hoặc nhiều câu hỏi không thuộc phạm vi luyện tập hợp lệ." }, { status: 403 });
+      return NextResponse.json({ valid: false, error: "Một hoặc nhiều câu hỏi không thuộc tập ứng viên hợp lệ của phiên này." }, { status: 403 });
     }
 
     return NextResponse.json({ valid: true, questionIds });
