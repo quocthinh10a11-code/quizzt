@@ -109,7 +109,7 @@ export default function HomePage() {
       }
 
       if (!cancelled) {
-        const learningErrors = [dueResult.error, attemptsResult.error, weakChapterResult.error].filter(Boolean);
+        const learningErrors = [dueResult.error, attemptsResult.error].filter(Boolean);
         if (learningErrors.length > 0) {
           setLearningError("Không thể xác định việc học tiếp theo lúc này.");
           setDueReviewCount(0);
@@ -118,7 +118,7 @@ export default function HomePage() {
         } else {
           setDueReviewCount(dueResult.count);
           setRecentAttempts(attemptsResult.data);
-          setWeakChapter(weakChapterResult.data);
+          setWeakChapter(weakChapterResult.error ? null : weakChapterResult.data);
         }
         setUsername(profileResult.data?.username ?? null);
         setLoading(false);
