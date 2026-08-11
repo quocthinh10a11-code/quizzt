@@ -55,7 +55,6 @@ export async function POST(req: NextRequest) {
     if (sourceQuizzesError) return NextResponse.json({ error: "Không thể xác thực phạm vi bộ đề." }, { status: 500 });
 
     const sourceQuizMap = new Map((sourceQuizzes ?? []).map((quiz) => [quiz.id, quiz as QuizRow]));
-    const sourceQuestionMap = new Map((sourceQuestions ?? []).map((question) => [question.id, question as QuestionRow]));
     const sourceChapterIds = [...new Set(
       (sourceQuestions ?? [])
         .map((question) => question.quiz_id !== null ? sourceQuizMap.get(question.quiz_id)?.chapter_id : null)
