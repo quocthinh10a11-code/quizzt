@@ -9,6 +9,8 @@ export type AttemptAnswerInput = {
   is_correct: boolean;
 };
 
+export type AttemptType = "quiz" | "bookmark" | "weak_topics" | "ai_generated" | "review_queue" | "adaptive";
+
 export async function saveQuizAttempt(params: {
   userId: string;
   quizId: number | null;
@@ -55,7 +57,6 @@ export async function saveQuizAttempt(params: {
 
   return { attemptId: attempt.id, error: null };
 }
-export type AttemptType = "quiz" | "bookmark" | "weak_topics" | "ai_generated" | "review_queue";
 
 export type AttemptSummary = {
   id: number;
@@ -115,7 +116,7 @@ export async function getUserAttemptsPage(
   attemptTypes?: AttemptType[]
 ): Promise<{ items: AttemptSummary[]; hasMore: boolean }> {
   const from = page * HISTORY_PAGE_SIZE;
-  const to = from + HISTORY_PAGE_SIZE; // lấy dư 1 dòng để biết còn trang sau không
+  const to = from + HISTORY_PAGE_SIZE;
 
   let query = supabase
     .from("quiz_attempts")
