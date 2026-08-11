@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Clock, ChevronLeft, ChevronRight, Send, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Card from "@/components/ui/Card";
@@ -19,50 +19,93 @@ const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = { e
 export default function AdaptivePracticePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const rawQuestions = String(params.questions ?? "");
+  const attemptId = Number(searchParams.get("attemptId"));
   const questionIds = [...new Set(rawQuestions.split(",").map(Number).filter((id) => Number.isInteger(id) && id > 0))].slice(0, 10);
 
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [quizTitle] = useState("Luyện tập cá nhân hóa");
+  const [validationError, setValidationError] = useState("");
+  const [quizTitle] = useState("Adaptive · Luyện tập cá nhân hóa");
 
   const session = usePracticeSession({
     questions,
     userId: user?.id,
     quizId: null,
     quizTitle,
+    // Database hiện tại chưa xác nhận support một enum/value "adaptive".
+    // Giữ "quiz" để không phá schema hiện có và dùng quizTitle marker làm metadata nhận diện.
     attemptType: "quiz",
-    storageKey: `quizResult:adaptive:${questionIds.join("-")}`,
+    storageKey: `quizResult:adaptive:${attemptId}:${questionIds.join("-")}`,
   });
 
   useEffect(() => {
-    async function loadQuestions() {
-      if (!user || questionIds.length === 0) {
+    async function validateAndLoadQuestions() {
+      setLoading(true);
+      setValidationError("");
+      setQuestions([]);
+
+      if (!user || !Number.isInteger(attemptId) || attemptId <= 0 || questionIds.length === 0) {
+        setValidationError("Phiên luyện tập không hợp lệ hoặc đã hết hiệu lực.");
         setLoading(false);
         return;
       }
 
-      const { data } = await supabase
-        .from("questions")
-        .select("id, content, options, correct_index, difficulty")
-        .in("id", questionIds);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) {
+          setValidationError("Bạn cần đăng nhập để sử dụng phiên luyện tập này.");
+          setLoading(false);
+          return;
+        }
 
-      const byId = new Map((data ?? []).map((question) => [question.id, question as PracticeQuestion]));
-      setQuestions(questionIds.map((id) => byId.get(id)).filter((question): question is PracticeQuestion => !!question));
-      setLoading(false);
+        const validationResponse = await fetch("/api/adaptive-practice/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ attemptId, questionIds }),
+        });
+        const validationData = await validationResponse.json();
+        if (!validationResponse.ok || validationData.valid !== true) {
+          setValidationError(validationData.error ?? "Phiên luyện tập không hợp lệ.");
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("questions")
+          .select("id, content, options, correct_index, difficulty")
+          .in("id", questionIds);
+        if (error) {
+          setValidationError("Không thể tải câu hỏi luyện tập.");
+          setLoading(false);
+          return;
+        }
+
+        const byId = new Map((data ?? []).map((question) => [question.id, question as PracticeQuestion]));
+        const validatedQuestions = questionIds
+          .map((id) => byId.get(id))
+          .filter((question): question is PracticeQuestion => !!question);
+        setQuestions(validatedQuestions);
+      } catch {
+        setValidationError("Không thể xác thực phiên luyện tập lúc này.");
+      } finally {
+        setLoading(false);
+      }
     }
 
-    loadQuestions();
-  }, [user?.id, rawQuestions]);
+    validateAndLoadQuestions();
+  }, [user?.id, rawQuestions, attemptId]);
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Đang tải câu hỏi phù hợp...</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">Đang xác thực và tải câu hỏi phù hợp...</div>;
 
-  if (questions.length === 0) {
+  if (validationError || questions.length === 0) {
     return (
       <div className="p-8 max-w-md mx-auto text-center">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Chưa có câu hỏi phù hợp</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2 mb-5">Quizzt chưa tìm được câu hỏi hợp lệ cho phiên luyện tập này.</p>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Không thể mở phiên luyện tập</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-2 mb-5">{validationError || "Quizzt chưa tìm được câu hỏi hợp lệ cho phiên luyện tập này."}</p>
         <Button onClick={() => router.push("/")} variant="primary">Về trang chủ</Button>
       </div>
     );
