@@ -15,6 +15,7 @@ import { usePracticeSession, type PracticeQuestion } from "@/lib/usePracticeSess
 import { addToReviewQueue } from "@/lib/reviewQueue";
 import AiTutorChat from "@/components/ai/AiTutorChat";
 import { buildQuickActions } from "@/lib/ai/quickActions";
+
 const DIFFICULTY_LABEL: Record<string, string> = { easy: "Dễ", medium: "Trung bình", hard: "Khó" };
 const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
   easy: "success",
@@ -24,7 +25,11 @@ const DIFFICULTY_VARIANT: Record<string, "success" | "warning" | "danger"> = {
 
 export default function PracticePage() {
   const params = useParams();
-  const quizId = Number(params.id);
+  const rawId = String(params.id ?? "");
+  const chapterMatch = rawId.match(/^chapter-(\d+)$/);
+  const chapterId = chapterMatch ? Number(chapterMatch[1]) : null;
+  const quizId = chapterId === null ? Number(rawId) : null;
+  const isChapterPractice = chapterId !== null;
   const router = useRouter();
   const { user } = useAuth();
 
@@ -39,57 +44,99 @@ export default function PracticePage() {
     userId: user?.id,
     quizId,
     quizTitle,
-    attemptType: "quiz",
-    storageKey: `quizResult:${quizId}`,
+    attemptType: isChapterPractice ? "weak_topics" : "quiz",
+    storageKey: isChapterPractice ? `quizResult:chapter:${chapterId}` : `quizResult:${quizId}`,
   });
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
 
-      const { data: quiz } = await supabase
-        .from("quizzes")
-        .select("title")
-        .eq("id", quizId)
-        .single();
+      if (isChapterPractice && chapterId !== null) {
+        const { data: chapter } = await supabase
+          .from("chapters")
+          .select("name, subject_id")
+          .eq("id", chapterId)
+          .single();
 
-      const { data: questionData } = await supabase
-        .from("questions")
-        .select("id, content, options, correct_index, difficulty")
-        .eq("quiz_id", quizId);
-
-      if (quiz) setQuizTitle(quiz.title);
-      if (questionData) {
-        setQuestions(questionData);
-
-        if (user) {
-          const ids = questionData.map((q) => q.id);
-
-          const { data: bookmarkData } = await supabase
-            .from("bookmarks")
-            .select("question_id")
-            .eq("user_id", user.id)
-            .in("question_id", ids);
-          setBookmarkedIds(new Set((bookmarkData ?? []).map((b) => b.question_id)));
-
-          const { data: noteData } = await supabase
-            .from("notes")
-            .select("question_id, content")
-            .eq("user_id", user.id)
-            .in("question_id", ids);
-          const notesMap: Record<number, string> = {};
-          (noteData ?? []).forEach((n) => {
-            notesMap[n.question_id] = n.content;
-          });
-          setNotes(notesMap);
+        let subjectName = "";
+        if (chapter?.subject_id) {
+          const { data: subject } = await supabase
+            .from("subjects")
+            .select("name")
+            .eq("id", chapter.subject_id)
+            .maybeSingle();
+          subjectName = subject?.name ?? "";
         }
+
+        const { data: questionData } = await supabase
+          .from("questions")
+          .select("id, content, options, correct_index, difficulty, quizzes!inner(chapter_id)")
+          .eq("quizzes.chapter_id", chapterId)
+          .limit(10);
+
+        setQuizTitle(
+          chapter
+            ? `Luyện ${subjectName ? `${subjectName} · ` : ""}${chapter.name}`
+            : "Luyện chương"
+        );
+        setQuestions((questionData ?? []) as PracticeQuestion[]);
+      } else {
+        const { data: quiz } = await supabase
+          .from("quizzes")
+          .select("title")
+          .eq("id", quizId)
+          .single();
+
+        const { data: questionData } = await supabase
+          .from("questions")
+          .select("id, content, options, correct_index, difficulty")
+          .eq("quiz_id", quizId);
+
+        if (quiz) setQuizTitle(quiz.title);
+        setQuestions(questionData ?? []);
+      }
+
+      const loadedQuestions = isChapterPractice && chapterId !== null
+        ? await loadChapterQuestionIds(chapterId)
+        : null;
+      const ids = loadedQuestions ?? questions.map((q) => q.id);
+
+      if (user && ids.length > 0) {
+        const { data: bookmarkData } = await supabase
+          .from("bookmarks")
+          .select("question_id")
+          .eq("user_id", user.id)
+          .in("question_id", ids);
+        setBookmarkedIds(new Set((bookmarkData ?? []).map((b) => b.question_id)));
+
+        const { data: noteData } = await supabase
+          .from("notes")
+          .select("question_id, content")
+          .eq("user_id", user.id)
+          .in("question_id", ids);
+        const notesMap: Record<number, string> = {};
+        (noteData ?? []).forEach((n) => {
+          notesMap[n.question_id] = n.content;
+        });
+        setNotes(notesMap);
       }
 
       setLoading(false);
     }
 
+    async function loadChapterQuestionIds(targetChapterId: number) {
+      const { data } = await supabase
+        .from("questions")
+        .select("id, quizzes!inner(chapter_id)")
+        .eq("quizzes.chapter_id", targetChapterId)
+        .limit(10);
+      return (data ?? []).map((q) => q.id);
+    }
+
     loadData();
-  }, [quizId, user?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapterId, quizId, user?.id, isChapterPractice]);
 
   async function handleToggleBookmark(questionId: number) {
     if (!user) return;
@@ -114,7 +161,6 @@ export default function PracticePage() {
       return;
     }
 
-    // Bookmark mới (không phải gỡ) -> tự động đưa vào Review Queue
     if (!isBookmarked) {
       addToReviewQueue(user.id, questionId, "bookmark");
     }
@@ -133,7 +179,11 @@ export default function PracticePage() {
   }
 
   if (questions.length === 0) {
-    return <div className="p-8 text-center text-gray-500">Bộ đề này chưa có câu hỏi nào.</div>;
+    return (
+      <div className="p-8 text-center text-gray-500">
+        {isChapterPractice ? "Chương này chưa có câu hỏi phù hợp." : "Bộ đề này chưa có câu hỏi nào."}
+      </div>
+    );
   }
 
   if (!session.started) {
@@ -333,9 +383,15 @@ export default function PracticePage() {
             /{questions.length} câu
           </p>
 
-          <Button onClick={() => router.push(`/review/${quizId}`)} variant="primary" size="lg">
-            Xem lại đáp án
-          </Button>
+          {isChapterPractice ? (
+            <Button onClick={() => router.push("/")} variant="primary" size="lg">
+              Về trang chủ
+            </Button>
+          ) : (
+            <Button onClick={() => router.push(`/review/${quizId}`)} variant="primary" size="lg">
+              Xem lại đáp án
+            </Button>
+          )}
         </Card>
       )}
 
