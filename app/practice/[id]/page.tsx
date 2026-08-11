@@ -51,6 +51,7 @@ export default function PracticePage() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
+      let loadedQuestionIds: number[] = [];
 
       if (isChapterPractice && chapterId !== null) {
         const { data: chapter } = await supabase
@@ -73,6 +74,7 @@ export default function PracticePage() {
           .from("questions")
           .select("id, content, options, correct_index, difficulty, quizzes!inner(chapter_id)")
           .eq("quizzes.chapter_id", chapterId)
+          .order("id", { ascending: true })
           .limit(10);
 
         setQuizTitle(
@@ -81,6 +83,7 @@ export default function PracticePage() {
             : "Luyện chương"
         );
         setQuestions((questionData ?? []) as PracticeQuestion[]);
+        loadedQuestionIds = (questionData ?? []).map((q) => q.id);
       } else {
         const { data: quiz } = await supabase
           .from("quizzes")
@@ -95,26 +98,22 @@ export default function PracticePage() {
 
         if (quiz) setQuizTitle(quiz.title);
         setQuestions(questionData ?? []);
+        loadedQuestionIds = (questionData ?? []).map((q) => q.id);
       }
 
-      const loadedQuestions = isChapterPractice && chapterId !== null
-        ? await loadChapterQuestionIds(chapterId)
-        : null;
-      const ids = loadedQuestions ?? questions.map((q) => q.id);
-
-      if (user && ids.length > 0) {
+      if (user && loadedQuestionIds.length > 0) {
         const { data: bookmarkData } = await supabase
           .from("bookmarks")
           .select("question_id")
           .eq("user_id", user.id)
-          .in("question_id", ids);
+          .in("question_id", loadedQuestionIds);
         setBookmarkedIds(new Set((bookmarkData ?? []).map((b) => b.question_id)));
 
         const { data: noteData } = await supabase
           .from("notes")
           .select("question_id, content")
           .eq("user_id", user.id)
-          .in("question_id", ids);
+          .in("question_id", loadedQuestionIds);
         const notesMap: Record<number, string> = {};
         (noteData ?? []).forEach((n) => {
           notesMap[n.question_id] = n.content;
@@ -125,17 +124,7 @@ export default function PracticePage() {
       setLoading(false);
     }
 
-    async function loadChapterQuestionIds(targetChapterId: number) {
-      const { data } = await supabase
-        .from("questions")
-        .select("id, quizzes!inner(chapter_id)")
-        .eq("quizzes.chapter_id", targetChapterId)
-        .limit(10);
-      return (data ?? []).map((q) => q.id);
-    }
-
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId, quizId, user?.id, isChapterPractice]);
 
   async function handleToggleBookmark(questionId: number) {
