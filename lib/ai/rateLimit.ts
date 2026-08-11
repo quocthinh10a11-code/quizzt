@@ -1,19 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-type RateLimitEndpoint = "ask" | "recommend" | "insight";
+type RateLimitEndpoint = "ask" | "recommend" | "insight" | "adaptive_practice";
 
 type RateLimitResult = {
   allowed: boolean;
   retryAfterSeconds?: number;
 };
 
-// Đếm số lượt gọi của user trong 60 giây qua cho đúng endpoint, so với ngưỡng cho phép.
-// Nếu chưa vượt, ghi nhận lượt gọi hiện tại và trả về allowed=true.
-//
-// Lưu ý về race condition (đã ghi rõ trong Technical Debt Assessment):
-// nếu 2 request cùng lúc tới trong khoảng vài mili-giây, cả 2 có thể đều pass
-// bước đếm trước khi bước ghi log của request đầu kịp hoàn tất — chấp nhận
-// rủi ro nhỏ này ở mức rate limit đơn giản (không dùng lock/transaction phức tạp).
+// Đếm số lượt gọi của user trong 60 giây qua đúng endpoint, so với ngưỡng cho phép.
 export async function checkAndRecordRateLimit(
   supabase: SupabaseClient,
   userId: string,
@@ -30,8 +24,6 @@ export async function checkAndRecordRateLimit(
     .gte("created_at", since);
 
   if (countError) {
-    // Fail-open: nếu không kiểm tra được do lỗi hạ tầng, cho phép request đi qua
-    // thay vì chặn nhầm người dùng hợp lệ vì sự cố không liên quan tới họ.
     console.error("[rateLimit] Lỗi khi đếm lượt gọi:", countError.message);
     return { allowed: true };
   }
