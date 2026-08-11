@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-type RateLimitEndpoint = "ask" | "recommend";
+type RateLimitEndpoint = "ask" | "recommend" | "insight";
 
 type RateLimitResult = {
   allowed: boolean;
