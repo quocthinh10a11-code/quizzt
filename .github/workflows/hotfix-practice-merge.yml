@@ -37,10 +37,11 @@ jobs:
               path.write_text(text, encoding="utf-8")
           PY
 
-      - name: Verify build
+      - name: Verify lint and TypeScript
         run: |
           npm ci
-          npm run build
+          npm run lint
+          npx tsc --noEmit
 
       - name: Commit hotfix and remove temporary workflow
         run: |
