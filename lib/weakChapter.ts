@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const WEAK_CHAPTER_CONFIG = {
   recentDays: 30,
@@ -38,12 +39,15 @@ export type WeakChapterResult = {
  *
  * Each question contributes equally to chapter accuracy, so repeatedly
  * answering the same question does not dominate the result.
+ *
+ * The optional client keeps existing browser callers unchanged while allowing
+ * authenticated server routes to execute the same business logic under RLS.
  */
-export async function getWeakChapterResult(userId: string): Promise<WeakChapterResult> {
+export async function getWeakChapterResult(userId: string, client: SupabaseClient = supabase): Promise<WeakChapterResult> {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - WEAK_CHAPTER_CONFIG.recentDays);
 
-  const { data: attempts, error: attemptsError } = await supabase
+  const { data: attempts, error: attemptsError } = await client
     .from("quiz_attempts")
     .select("id, created_at")
     .eq("user_id", userId)
@@ -59,7 +63,7 @@ export async function getWeakChapterResult(userId: string): Promise<WeakChapterR
   const attemptIds = (attempts ?? []).map((attempt) => attempt.id);
   if (attemptIds.length === 0) return { data: null, error: null };
 
-  const { data: answers, error: answersError } = await supabase
+  const { data: answers, error: answersError } = await client
     .from("quiz_attempt_answers")
     .select("attempt_id, question_id, is_correct")
     .in("attempt_id", attemptIds);
@@ -72,7 +76,7 @@ export async function getWeakChapterResult(userId: string): Promise<WeakChapterR
   if (answerRows.length === 0) return { data: null, error: null };
 
   const questionIds = Array.from(new Set(answerRows.map((answer) => answer.question_id)));
-  const { data: questions, error: questionsError } = await supabase
+  const { data: questions, error: questionsError } = await client
     .from("questions")
     .select("id, quiz_id")
     .in("id", questionIds);
@@ -87,7 +91,7 @@ export async function getWeakChapterResult(userId: string): Promise<WeakChapterR
   );
   if (quizIds.length === 0) return { data: null, error: null };
 
-  const { data: quizzes, error: quizzesError } = await supabase
+  const { data: quizzes, error: quizzesError } = await client
     .from("quizzes")
     .select("id, chapter_id")
     .in("id", quizIds);
@@ -102,7 +106,7 @@ export async function getWeakChapterResult(userId: string): Promise<WeakChapterR
   );
   if (chapterIds.length === 0) return { data: null, error: null };
 
-  const { data: chapters, error: chaptersError } = await supabase
+  const { data: chapters, error: chaptersError } = await client
     .from("chapters")
     .select("id, name, subject_id")
     .in("id", chapterIds);
@@ -122,7 +126,7 @@ export async function getWeakChapterResult(userId: string): Promise<WeakChapterR
   );
 
   const { data: subjects, error: subjectsError } = subjectIds.length
-    ? await supabase.from("subjects").select("id, name").in("id", subjectIds)
+    ? await client.from("subjects").select("id, name").in("id", subjectIds)
     : { data: [], error: null };
 
   if (subjectsError) {

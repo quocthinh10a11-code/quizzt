@@ -13,6 +13,7 @@ export default function Footer() {
 
         <div className="flex items-center gap-6 text-sm text-muted">
           <Link href="/quizzes" className="hover:text-primary transition-colors">Bộ đề</Link>
+          <Link href="/study-plan" className="hover:text-primary transition-colors">Kế hoạch học</Link>
           <Link href="/setting" className="hover:text-primary transition-colors">Cài đặt</Link>
         </div>
 
