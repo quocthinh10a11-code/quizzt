@@ -47,7 +47,7 @@ export async function getWeakChapterResult(userId: string): Promise<WeakChapterR
     .from("quiz_attempts")
     .select("id, created_at")
     .eq("user_id", userId)
-    .eq("attempt_type", "quiz")
+    .in("attempt_type", ["quiz", "weak_topics"])
     .gte("created_at", cutoff.toISOString())
     .order("created_at", { ascending: false })
     .limit(WEAK_CHAPTER_CONFIG.maxAttempts);
