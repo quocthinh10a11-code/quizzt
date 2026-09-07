@@ -96,8 +96,12 @@ export default function AiTutorChat({
     setLoading(true);
 
     const apiHistory = messages
-      .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+  .filter((m) => m.role === "user" || m.role === "assistant")
+  .slice(-6)
+  .map((m) => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
 
     try {
       // Lấy access token hiện tại để route xác thực đúng người gọi (Bước 8: Rate Limit
