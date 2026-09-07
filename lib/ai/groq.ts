@@ -5,7 +5,7 @@ import type { TutorQuestionContext, TutorAnswerVisibility, TutorScreenContext, R
 import { buildLearningInsightPrompt, parseLearningInsight, type LearningInsight, type LearningInsightContext } from "./learningInsight";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 
 export type ChatMessage = {
   role: "user" | "assistant";
@@ -63,10 +63,6 @@ export async function getGroqRecommendation(items: RecommendationItem[]): Promis
 
 const MAX_HISTORY_MESSAGES = 6;
 
-// Dịch TutorMode cũ ("learning"/"review", chữ ký public route đang dùng) sang
-// TutorAnswerVisibility mới ("hidden"/"revealed", dùng nội bộ trong Prompt Architecture).
-// Đặt việc dịch ở ĐÂY (chi tiết triển khai), không đặt ở provider.ts (lớp abstraction),
-// để provider.ts không cần biết gì về Prompt Architecture bên trong.
 function toAnswerVisibility(mode: "learning" | "review"): TutorAnswerVisibility {
   return mode === "review" ? "revealed" : "hidden";
 }
