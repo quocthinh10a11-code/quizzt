@@ -6,7 +6,7 @@ import {
 } from "./studyPlan";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
 
 export async function getGroqStudyPlan(context: StudyPlanContext): Promise<StudyPlan> {
   const apiKey = process.env.GROQ_API_KEY;
