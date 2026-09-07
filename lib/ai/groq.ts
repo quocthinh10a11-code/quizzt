@@ -5,7 +5,7 @@ import type { TutorQuestionContext, TutorAnswerVisibility, TutorScreenContext, R
 import { buildLearningInsightPrompt, parseLearningInsight, type LearningInsight, type LearningInsightContext } from "./learningInsight";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
 
 export type ChatMessage = {
   role: "user" | "assistant";
