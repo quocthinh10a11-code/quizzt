@@ -48,31 +48,41 @@ export default function QuestionCard({
   onDelete,
 }: Props) {
   const hasCorrectAnswer = question.correctIndex !== null;
+  const isPreview = variant === "preview";
 
   return (
     <Card className={cn("overflow-hidden", isOpen && "ring-1 ring-primary/10")}>
       <div className="p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <button
-            type="button"
-            onClick={onOpen}
-            className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 rounded-lg"
-          >
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-bold text-foreground">Câu {index + 1}</span>
-              <Badge variant={hasCorrectAnswer ? "success" : "warning"}>
-                {hasCorrectAnswer ? <Check size={12} /> : "Cần chọn đáp án"}
-                {hasCorrectAnswer && "Đã chọn"}
-              </Badge>
-            </div>
-            {variant === "preview" ? (
-              <p className="mt-2 text-sm sm:text-base font-medium leading-6 text-foreground line-clamp-2">
+          {isPreview ? (
+            <div className="min-w-0 flex-1 text-left">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold text-foreground">Câu {index + 1}</span>
+                <Badge variant={hasCorrectAnswer ? "success" : "warning"}>
+                  {hasCorrectAnswer ? <Check size={12} /> : "Cần chọn đáp án"}
+                  {hasCorrectAnswer && "Đã chọn"}
+                </Badge>
+              </div>
+              <p className="mt-2 text-sm sm:text-base font-medium leading-6 text-foreground">
                 {question.content || "Chưa có nội dung câu hỏi"}
               </p>
-            ) : (
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpen}
+              className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 rounded-lg"
+            >
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold text-foreground">Câu {index + 1}</span>
+                <Badge variant={hasCorrectAnswer ? "success" : "warning"}>
+                  {hasCorrectAnswer ? <Check size={12} /> : "Cần chọn đáp án"}
+                  {hasCorrectAnswer && "Đã chọn"}
+                </Badge>
+              </div>
               <p className="mt-2 text-xs text-muted">Bấm để mở rộng và chỉnh sửa câu hỏi.</p>
-            )}
-          </button>
+            </button>
+          )}
 
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-32 sm:w-36" onClick={(e) => e.stopPropagation()}>
@@ -80,7 +90,7 @@ export default function QuestionCard({
                 label="Độ khó"
                 options={DIFFICULTY_OPTIONS}
                 value={question.difficulty}
-                onFocus={onOpen}
+                onFocus={isPreview ? undefined : onOpen}
                 onChange={(e) => onChangeDifficulty(e.target.value as Difficulty)}
                 className="text-xs"
               />
@@ -95,25 +105,21 @@ export default function QuestionCard({
                 <Trash2 size={17} />
               </button>
             )}
-            <button
-              type="button"
-              onClick={onOpen}
-              aria-label={isOpen ? "Thu gọn câu hỏi" : "Mở câu hỏi"}
-              className="p-2 mt-5 rounded-lg text-muted hover:text-foreground hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-            >
-              <ChevronDown size={17} className={cn("transition-transform", isOpen && "rotate-180")} />
-            </button>
+            {!isPreview && (
+              <button
+                type="button"
+                onClick={onOpen}
+                aria-label={isOpen ? "Thu gọn câu hỏi" : "Mở câu hỏi"}
+                className="p-2 mt-5 rounded-lg text-muted hover:text-foreground hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+              >
+                <ChevronDown size={17} className={cn("transition-transform", isOpen && "rotate-180")} />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {!isOpen ? (
-        <div className="px-4 sm:px-5 pb-4">
-          <div className="rounded-lg bg-surface-muted px-3 py-2 text-xs text-muted">
-            Mở câu hỏi để kiểm tra hoặc chỉnh đáp án.
-          </div>
-        </div>
-      ) : variant === "preview" ? (
+      {isPreview ? (
         <div className="border-t border-border bg-surface-muted/40 p-4 sm:p-5 animate-fade-up">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted mb-3">Chọn đáp án đúng</p>
           <div className="grid sm:grid-cols-2 gap-2.5">
@@ -142,6 +148,12 @@ export default function QuestionCard({
                 </label>
               );
             })}
+          </div>
+        </div>
+      ) : !isOpen ? (
+        <div className="px-4 sm:px-5 pb-4">
+          <div className="rounded-lg bg-surface-muted px-3 py-2 text-xs text-muted">
+            Mở câu hỏi để kiểm tra hoặc chỉnh đáp án.
           </div>
         </div>
       ) : (
