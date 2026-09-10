@@ -27,6 +27,24 @@ type UseQuizEditorParams = {
   userId: string | undefined;
 };
 
+type QuizSnapshot = {
+  title: string;
+  description: string;
+  chapterId: number | null;
+  tagNames: string[];
+  questions: EditorQuestion[];
+};
+
+function questionsEqual(a: EditorQuestion, b: EditorQuestion) {
+  return (
+    a.content === b.content &&
+    a.correctIndex === b.correctIndex &&
+    a.difficulty === b.difficulty &&
+    a.options.length === b.options.length &&
+    a.options.every((option, index) => option === b.options[index])
+  );
+}
+
 export function useQuizEditor({ mode, quizId, userId }: UseQuizEditorParams) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -36,6 +54,7 @@ export function useQuizEditor({ mode, quizId, userId }: UseQuizEditorParams) {
   const [tagNames, setTagNames] = useState<string[]>([]);
 
   const [questions, setQuestions] = useState<EditorQuestion[]>([]);
+  const [initialSnapshot, setInitialSnapshot] = useState<QuizSnapshot | null>(null);
   const [deletedIds, setDeletedIds] = useState<number[]>([]);
   const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
 
@@ -154,6 +173,13 @@ export function useQuizEditor({ mode, quizId, userId }: UseQuizEditorParams) {
       difficulty: q.difficulty,
     }));
     setQuestions(loaded);
+    setInitialSnapshot({
+      title: data.title,
+      description: data.description ?? "",
+      chapterId: data.chapterId,
+      tagNames: [...data.tagNames],
+      questions: loaded.map((q) => ({ ...q, options: [...q.options] })),
+    });
     setOpenedIds(new Set(loaded.map((q) => q.tempId)));
   }
 
@@ -238,15 +264,26 @@ export function useQuizEditor({ mode, quizId, userId }: UseQuizEditorParams) {
       return { success: false, quizId: null };
     }
 
-    const { error: titleError } = await supabase
-      .from("quizzes")
-      .update({ title: title.trim(), description: description.trim() || null, chapter_id: chapterId })
-      .eq("id", quizId);
+    const snapshot = initialSnapshot;
+    const titleChanged = !snapshot || title.trim() !== snapshot.title;
+    const descriptionChanged = !snapshot || (description.trim() || "") !== snapshot.description;
+    const chapterChanged = !snapshot || chapterId !== snapshot.chapterId;
 
-    if (titleError) {
-      setSaveError("Lỗi khi lưu tiêu đề: " + titleError.message);
-      setSaving(false);
-      return { success: false, quizId };
+    if (titleChanged || descriptionChanged || chapterChanged) {
+      const { error: titleError } = await supabase
+        .from("quizzes")
+        .update({
+          ...(titleChanged ? { title: title.trim() } : {}),
+          ...(descriptionChanged ? { description: description.trim() || null } : {}),
+          ...(chapterChanged ? { chapter_id: chapterId } : {}),
+        })
+        .eq("id", quizId);
+
+      if (titleError) {
+        setSaveError("Lỗi khi lưu thông tin bộ đề: " + titleError.message);
+        setSaving(false);
+        return { success: false, quizId };
+      }
     }
 
     if (deletedIds.length > 0) {
@@ -258,8 +295,16 @@ export function useQuizEditor({ mode, quizId, userId }: UseQuizEditorParams) {
       }
     }
 
-    const existing = questions.filter((q) => q.id !== null);
-    for (const q of existing) {
+    const initialQuestionsById = new Map(
+      (snapshot?.questions ?? []).filter((q) => q.id !== null).map((q) => [q.id as number, q])
+    );
+    const changedExisting = questions.filter((q) => {
+      if (q.id === null || deletedIds.includes(q.id)) return false;
+      const original = initialQuestionsById.get(q.id);
+      return !original || !questionsEqual(q, original);
+    });
+
+    for (const q of changedExisting) {
       const { error } = await supabase
         .from("questions")
         .update({ content: q.content, options: q.options, correct_index: q.correctIndex, difficulty: q.difficulty })
@@ -289,13 +334,21 @@ export function useQuizEditor({ mode, quizId, userId }: UseQuizEditorParams) {
       }
     }
 
-    const { error: tagsError } = await syncQuizTags(quizId, userId, tagNames);
+    const tagsChanged = !snapshot ||
+      tagNames.length !== snapshot.tagNames.length ||
+      tagNames.some((tag, index) => tag !== snapshot.tagNames[index]);
+
+    if (tagsChanged) {
+      const { error: tagsError } = await syncQuizTags(quizId, userId, tagNames);
+      if (tagsError) {
+        setSaveError("Lỗi khi lưu nhãn: " + tagsError);
+        setSaving(false);
+        return { success: false, quizId };
+      }
+    }
+
     setSaving(false);
     setDeletedIds([]);
-    if (tagsError) {
-      setSaveError("Lỗi khi lưu nhãn: " + tagsError);
-      return { success: false, quizId };
-    }
     return { success: true, quizId };
   }
 
