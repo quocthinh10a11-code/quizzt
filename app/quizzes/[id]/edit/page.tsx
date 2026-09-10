@@ -21,6 +21,7 @@ export default function EditQuizPage() {
   const { user, loading: authLoading } = useAuth();
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const editor = useQuizEditor({ mode: "edit", quizId, userId: user?.id });
 
   useEffect(() => {
@@ -76,8 +77,12 @@ export default function EditQuizPage() {
   }
 
   async function handleSave() {
+    setSaveSuccess(false);
     const result = await editor.save();
-    if (result.success) router.push("/quizzes");
+    if (result.success) {
+      setSaveSuccess(true);
+      window.setTimeout(() => router.push("/quizzes?saved=1"), 700);
+    }
   }
 
   return (
@@ -148,12 +153,18 @@ export default function EditQuizPage() {
             <Plus size={16} /> Thêm câu hỏi
           </button>
 
+          {saveSuccess && (
+            <div className="mt-4 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-sm font-medium text-success" role="status">
+              Đã lưu thay đổi. Đang quay về thư viện bộ đề...
+            </div>
+          )}
+
           {editor.saveError && <div className="mt-4 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">{editor.saveError}</div>}
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-6">
             <Button onClick={() => router.push("/quizzes")} variant="secondary">Huỷ</Button>
-            <Button onClick={handleSave} disabled={editor.saving} loading={editor.saving} variant="primary" leftIcon={!editor.saving && <Save size={16} />}>
-              {editor.saving ? "Đang lưu..." : "Lưu thay đổi"}
+            <Button onClick={handleSave} disabled={editor.saving || saveSuccess} loading={editor.saving} variant="primary" leftIcon={!editor.saving && !saveSuccess && <Save size={16} />}>
+              {editor.saving ? "Đang lưu..." : saveSuccess ? "Đã lưu" : "Lưu thay đổi"}
             </Button>
           </div>
         </section>
