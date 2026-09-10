@@ -73,31 +73,29 @@ export function useQuizEditor({ mode, quizId, userId }: UseQuizEditorParams) {
 
     const { questions: parsed, errors } = parseText(body);
     setParseErrors(errors);
-    setQuestions(
-      parsed.map((q) => ({
-        id: null,
-        tempId: makeTempId(),
-        content: q.content,
-        options: q.options,
-        correctIndex: q.correctIndex,
-        difficulty: q.difficulty,
-      }))
-    );
-    setOpenedIds(new Set());
+    const nextQuestions = parsed.map((q) => ({
+      id: null,
+      tempId: makeTempId(),
+      content: q.content,
+      options: q.options,
+      correctIndex: q.correctIndex,
+      difficulty: q.difficulty,
+    }));
+    setQuestions(nextQuestions);
+    setOpenedIds(new Set(nextQuestions.map((q) => q.tempId)));
   }
 
   function addQuestion() {
-    setQuestions((prev) => [
-      ...prev,
-      {
-        id: null,
-        tempId: makeTempId(),
-        content: "",
-        options: ["", "", "", ""],
-        correctIndex: 0,
-        difficulty: "medium",
-      },
-    ]);
+    const newQuestion = {
+      id: null,
+      tempId: makeTempId(),
+      content: "",
+      options: ["", "", "", ""],
+      correctIndex: 0,
+      difficulty: "medium" as Difficulty,
+    };
+    setQuestions((prev) => [...prev, newQuestion]);
+    setOpenedIds((prev) => new Set(prev).add(newQuestion.tempId));
   }
 
   function updateQuestion(tempId: string, patch: Partial<EditorQuestion>) {
