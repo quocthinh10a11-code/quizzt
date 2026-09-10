@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Plus, FileQuestion } from "lucide-react";
+import { ArrowLeft, Search, Plus, FileQuestion } from "lucide-react";
 import RequireAuth from "@/components/RequireAuth";
 import QuizCard from "@/components/QuizCard";
 import Input from "@/components/ui/Input";
@@ -126,6 +126,16 @@ export default function MyQuizzesPage() {
   return (
     <RequireAuth>
       <div className="p-8 max-w-6xl mx-auto">
+        <div className="mb-5">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 rounded-lg px-2 py-1.5"
+          >
+            <ArrowLeft size={16} />
+            Quay về trang chủ
+          </Link>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <h1 className="text-2xl font-bold text-foreground">
             Bộ đề của bạn
