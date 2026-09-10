@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FilePlus2, Save, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -16,8 +17,24 @@ export default function CreateQuizPage() {
   const router = useRouter();
   const { user } = useAuth();
   const editor = useQuizEditor({ mode: "create", userId: user?.id });
+  const [unansweredQuestionId, setUnansweredQuestionId] = useState<string | null>(null);
 
   async function handleSave() {
+    const firstUnanswered = editor.questions.find((q) => q.correctIndex === null);
+
+    if (firstUnanswered) {
+      setUnansweredQuestionId(firstUnanswered.tempId);
+
+      requestAnimationFrame(() => {
+        const element = document.getElementById(`question-${firstUnanswered.tempId}`);
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const radio = element?.querySelector<HTMLInputElement>('input[type="radio"]');
+        radio?.focus({ preventScroll: true });
+      });
+      return;
+    }
+
+    setUnansweredQuestionId(null);
     const result = await editor.save();
     if (result.success) router.push("/quizzes");
   }
@@ -125,18 +142,36 @@ export default function CreateQuizPage() {
               </div>
 
               <div className="flex flex-col gap-4">
-                {editor.questions.map((q, index) => (
-                  <QuestionCard
-                    key={q.tempId}
-                    question={q}
-                    index={index}
-                    variant="preview"
-                    isOpen={editor.openedIds.has(q.tempId)}
-                    onOpen={() => editor.openQuestion(q.tempId)}
-                    onChangeDifficulty={(d) => editor.selectDifficulty(q.tempId, d)}
-                    onSelectCorrect={(i) => editor.selectCorrect(q.tempId, i)}
-                  />
-                ))}
+                {editor.questions.map((q, index) => {
+                  const isUnanswered = q.correctIndex === null;
+                  const isFocused = unansweredQuestionId === q.tempId;
+
+                  return (
+                    <div
+                      key={q.tempId}
+                      id={`question-${q.tempId}`}
+                      className={isFocused ? "rounded-xl ring-2 ring-danger/40 ring-offset-2 ring-offset-background transition-all" : "rounded-xl"}
+                    >
+                      <QuestionCard
+                        question={q}
+                        index={index}
+                        variant="preview"
+                        isOpen={editor.openedIds.has(q.tempId)}
+                        onOpen={() => editor.openQuestion(q.tempId)}
+                        onChangeDifficulty={(d) => editor.selectDifficulty(q.tempId, d)}
+                        onSelectCorrect={(i) => {
+                          editor.selectCorrect(q.tempId, i);
+                          if (unansweredQuestionId === q.tempId) setUnansweredQuestionId(null);
+                        }}
+                      />
+                      {isFocused && isUnanswered && (
+                        <p className="mt-2 px-1 text-sm font-medium text-danger" role="alert">
+                          Câu {index + 1} chưa có đáp án đúng. Vui lòng chọn một đáp án để tiếp tục.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {editor.saveError && (
@@ -148,7 +183,7 @@ export default function CreateQuizPage() {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={handleSave}
-                  disabled={editor.saving || !editor.allAnswered}
+                  disabled={editor.saving}
                   loading={editor.saving}
                   variant="primary"
                   size="lg"
